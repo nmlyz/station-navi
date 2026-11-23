@@ -20,7 +20,7 @@ button:active{opacity:.75}.row{display:flex;gap:8px}.row>*{flex:1}
 .suggest{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:4px}
 .suggest button{display:block;width:100%;text-align:left;background:var(--card);color:var(--text);border-radius:0;border-bottom:1px solid var(--border);font-weight:600;min-height:52px}
 .suggest small{display:block;color:var(--muted);font-weight:400}
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:var(--card);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:100;transform:translateZ(0);will-change:bottom;display:flex;background:var(--card);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
 .tabbar button{flex:1;background:none;color:var(--muted);font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;border-radius:0;min-height:58px}
 .tabbar button span{font-size:11px}.tabbar button.active{color:var(--accent)}
 .hidden{display:none!important}
@@ -40,3 +40,5 @@ progress{width:100%;height:10px}
 .lineslist{font-size:14px;line-height:1.7;padding:6px 0;border-bottom:1px solid var(--border)}
 .switch{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
 .switch input{width:auto;transform:scale(1.4)}
+.seg-dep{border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
+.chiprow{display:flex;flex-wrap:wrap}
