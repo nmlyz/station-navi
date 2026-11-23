@@ -25,8 +25,8 @@ function resolveStation(graph,q){
 }
 function suggestLines(graph,q,limit=10){
   const nq=normalizeName(q); const out=[];
-  graph.lines.forEach(l=>{ if(l.id.startsWith('walk-'))return; const nl=normalizeName(l.name);
-    let score=-1; if(nl===nq)score=0; else if(nl.startsWith(nq))score=1; else if(nl.includes(nq))score=2;
+  graph.lines.forEach(l=>{ if(l.id.startsWith('walk-'))return; const nl=normalizeName(l.name); const yl=l.yomi?normalizeName(l.yomi):'';
+    let score=-1; if(nl===nq||yl===nq)score=0; else if(nl.startsWith(nq)||yl.startsWith(nq))score=1; else if(nl.includes(nq)||yl.includes(nq))score=2;
     else if(normalizeName(l.operator).includes(nq))score=3;
     if(score>=0) out.push({line:l,score}); });
   return out.sort((a,b)=>a.score-b.score).slice(0,limit);

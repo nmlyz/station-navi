@@ -116,12 +116,13 @@ function doSearch(){
   localStorage.setItem('sn-history',JSON.stringify(hist.filter((h,i,arr)=>arr.findIndex(x=>x.from===h.from&&x.to===h.to)===i).slice(0,10)));
   renderRoutes();
 }
-function renderRoutes(){
+function renderRoutes(reorder){
   const box=$('#results'); if(!box||!LAST) return;
-  const routes=LAST.routes.slice();
-  if(SORTMODE==='fast') routes.sort((a,b)=>computeTimes(a).total-computeTimes(b).total);
+  if(reorder===false&&LAST.order) { var routes=LAST.order.slice(); }
+  else { var routes=LAST.routes.slice(); }
+  if(reorder!==false){ if(SORTMODE==='fast') routes.sort((a,b)=>computeTimes(a).total-computeTimes(b).total);
   if(SORTMODE==='cheap') routes.sort((a,b)=>(a.fare??1e9)-(b.fare??1e9));
-  if(SORTMODE==='few') routes.sort((a,b)=>a.transfers-b.transfers||computeTimes(a).total-computeTimes(b).total);
+  if(SORTMODE==='few') routes.sort((a,b)=>a.transfers-b.transfers||computeTimes(a).total-computeTimes(b).total); LAST.order=routes.slice(); }
   box.innerHTML='<label>並び替え</label><select id="sortSel"><option value="rec" '+(SORTMODE==='rec'?'selected':'')+'>おすすめ順</option><option value="fast" '+(SORTMODE==='fast'?'selected':'')+'>速さ順</option><option value="cheap" '+(SORTMODE==='cheap'?'selected':'')+'>値段順（安い順）</option><option value="few" '+(SORTMODE==='few'?'selected':'')+'>乗換が少ない順</option></select>'
    + routes.map(r=>{
     const {deps,arrs,total}=computeTimes(r);
@@ -145,7 +146,7 @@ function renderRoutes(){
   $('#sortSel').onchange=e=>{ SORTMODE=e.target.value; renderRoutes(); };
   box.querySelectorAll('.seg-dep').forEach(inp=>inp.onchange=()=>{
     const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===inp.dataset.sig); if(!r) return;
-    r.depOverrides[+inp.dataset.seg]=inp.value; renderRoutes(); toast('時刻を再計算しました'); });
+    r.depOverrides[+inp.dataset.seg]=inp.value; renderRoutes(false); toast('時刻を再計算しました'); });
   box.querySelectorAll('[data-favroute]').forEach(b=>b.onclick=()=>{ const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
     favs.unshift({from:LAST.from,to:LAST.to}); localStorage.setItem('sn-favs',JSON.stringify(favs.slice(0,20))); toast('お気に入りに保存しました'); });
 }

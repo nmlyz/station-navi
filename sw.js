@@ -1,5 +1,5 @@
-const VERSION='station-navi-v1.3.0';
-const SHELL=['./','index.html','css/style.css?v=1.3.0','js/database.js?v=1.3.0','js/routing.js?v=1.3.0','js/search.js?v=1.3.0','js/gps.js?v=1.3.0','js/settings.js?v=1.3.0','js/commute.js?v=1.3.0','js/updater.js?v=1.3.0','js/offline.js?v=1.3.0','js/app.js?v=1.3.0','manifest.json','data/manifest.json','assets/icons/icon.svg','assets/icons/icon-192.png','assets/icons/icon-512.png'];
+const VERSION='station-navi-v1.3.1';
+const SHELL=['./','index.html','css/style.css?v=1.3.1','js/database.js?v=1.3.1','js/routing.js?v=1.3.1','js/search.js?v=1.3.1','js/gps.js?v=1.3.1','js/settings.js?v=1.3.1','js/commute.js?v=1.3.1','js/updater.js?v=1.3.1','js/offline.js?v=1.3.1','js/app.js?v=1.3.1','manifest.json','data/manifest.json','assets/icons/icon.svg','assets/icons/icon-192.png','assets/icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{ const url=new URL(e.request.url);
