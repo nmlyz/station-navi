@@ -1,0 +1,38 @@
+:root{--bg:#f2f5f9;--card:#fff;--text:#14202b;--muted:#66788a;--accent:#0d82c7;--border:#dde5ec;--good:#1a9e54;--warn:#e67e00}
+@media (prefers-color-scheme:dark){:root{--bg:#0e141b;--card:#18222d;--text:#eef4f9;--muted:#9db0c1;--border:#2a3948}}
+body.dark{--bg:#0e141b;--card:#18222d;--text:#eef4f9;--muted:#9db0c1;--border:#2a3948}
+body.light{--bg:#f2f5f9;--card:#fff;--text:#14202b;--muted:#66788a;--border:#dde5ec}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);padding-bottom:86px}
+.topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border)}
+.brand{font-weight:800;font-size:19px}.ver{font-size:11px;color:var(--muted);font-weight:600}
+.badge{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--border)}
+.badge.off{color:var(--warn);font-weight:700}
+main{max-width:720px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+h2{font-size:17px;margin:4px 0 12px} h3{font-size:15px;margin:10px 0 6px}
+label{font-size:13px;color:var(--muted);display:block;margin:10px 0 4px}
+input,select{width:100%;font-size:17px;padding:13px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text)}
+button{font-size:16px;border:0;border-radius:12px;padding:13px 16px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;min-height:48px}
+button.sub{background:var(--bg);color:var(--text);border:1px solid var(--border)} button.danger{background:#d33}
+button:active{opacity:.75}.row{display:flex;gap:8px}.row>*{flex:1}
+.swap{flex:0 0 52px!important}
+.suggest{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:4px}
+.suggest button{display:block;width:100%;text-align:left;background:var(--card);color:var(--text);border-radius:0;border-bottom:1px solid var(--border);font-weight:600;min-height:52px}
+.suggest small{display:block;color:var(--muted);font-weight:400}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:var(--card);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar button{flex:1;background:none;color:var(--muted);font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;border-radius:0;min-height:58px}
+.tabbar button span{font-size:11px}.tabbar button.active{color:var(--accent)}
+.hidden{display:none!important}
+.offline-bar{background:#fff3df;color:#8a5a00;padding:10px 16px;font-size:13px;text-align:center}
+.timeline{position:relative;margin:8px 0 0 8px;padding-left:22px;border-left:4px solid var(--lc,#999)}
+.stop{position:relative;padding:8px 0}.stop::before{content:"";position:absolute;left:-29px;top:14px;width:10px;height:10px;border-radius:50%;background:var(--card);border:3px solid var(--lc,#999)}
+.linechip{display:inline-block;color:#fff;border-radius:8px;padding:3px 9px;font-size:13px;font-weight:700}
+.big{font-size:20px;font-weight:800}.muted{color:var(--muted);font-size:13px}.good{color:var(--good);font-weight:700}
+.result-head{display:flex;justify-content:space-between;align-items:baseline}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);overflow:auto;padding:18px}
+.modal .sheet{background:var(--card);border-radius:20px;padding:20px;max-width:640px;margin:20px auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:60;background:#14202b;color:#fff;padding:12px 18px;border-radius:999px;font-size:14px}
+progress{width:100%;height:10px}
+.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
+.switch{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.switch input{width:auto;transform:scale(1.4)}
