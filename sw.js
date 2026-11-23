@@ -1,7 +1,11 @@
-const VERSION='station-navi-v1.3.1';
-const SHELL=['./','index.html','css/style.css?v=1.3.1','js/database.js?v=1.3.1','js/routing.js?v=1.3.1','js/search.js?v=1.3.1','js/gps.js?v=1.3.1','js/settings.js?v=1.3.1','js/commute.js?v=1.3.1','js/updater.js?v=1.3.1','js/offline.js?v=1.3.1','js/app.js?v=1.3.1','manifest.json','data/manifest.json','assets/icons/icon.svg','assets/icons/icon-192.png','assets/icons/icon-512.png'];
+const VERSION='station-navi-v1.4.0';
+const SHELL=['./','index.html','css/style.css?v=1.4.0','js/database.js?v=1.4.0','js/routing.js?v=1.4.0','js/search.js?v=1.4.0','js/gps.js?v=1.4.0','js/settings.js?v=1.4.0','js/commute.js?v=1.4.0','js/updater.js?v=1.4.0','js/offline.js?v=1.4.0','js/app.js?v=1.4.0','manifest.json','assets/icons/icon.svg','assets/icons/icon-192.png','assets/icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{ const url=new URL(e.request.url);
-  if(url.pathname.includes('/data/packs/')){ e.respondWith(caches.match(e.request).then(hit=>hit||fetch(e.request).then(r=>{const cp=r.clone();caches.open(VERSION).then(c=>c.put(e.request,cp));return r;}))); return; }
+  const isNav=e.request.mode==='navigate'||url.pathname.endsWith('.html');
+  const isData=url.pathname.includes('/data/');
+  if(isNav||isData){ // network-first so app and data updates always land
+    e.respondWith(fetch(e.request).then(r=>{ const cp=r.clone(); caches.open(VERSION).then(c=>c.put(e.request,cp)); return r; }).catch(()=>caches.match(e.request).then(h=>h||caches.match('index.html'))));
+    return; }
   e.respondWith(caches.match(e.request,{ignoreSearch:false}).then(hit=>hit||fetch(e.request).catch(()=>caches.match('index.html')))); });

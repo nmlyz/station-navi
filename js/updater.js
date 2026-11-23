@@ -11,7 +11,7 @@ const Updater={
       const info=(manifest.packs||[]).find(p=>p.id===pack.id); if(!info) continue;
       if(info.version===pack.version && manifest.version===await DB.getMeta('manifestVersion')) continue;
       try{
-        const r=await fetch('data/'+info.file); if(!r.ok) throw new Error('bad');
+        const r=await fetch('data/'+info.file+'?ts='+Date.now()); if(!r.ok) throw new Error('bad');
         const total=+r.headers.get('Content-Length')||0; let buf='';
         if(r.body&&total&&onProgress){ const reader=r.body.getReader(); let got=0; const dec=new TextDecoder();
           while(true){ const {done,value}=await reader.read(); if(done)break; got+=value.length; buf+=dec.decode(value,{stream:true}); onProgress(info.id,Math.round(got/total*100)); } buf+=dec.decode();
