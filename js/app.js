@@ -71,13 +71,21 @@ function doSearch(){
   if(!GRAPH||!PACKS.length){ box.innerHTML='<p>駅データが未ダウンロードです。「ダウンロード」タブから地域データを保存してください。</p>'; return; }
   if(!GRAPH.stations.has(searchState.from)||!GRAPH.stations.has(searchState.to)){ box.innerHTML='<p>駅が見つかりません。保存済みデータに含まれる駅名で入力してください。未対応の地域は「ダウンロード」タブで確認できます。</p>'; return; }
   if(searchState.from===searchState.to){ box.innerHTML='<p>出発駅と到着駅が同じです。</p>'; return; }
-  const variants=[['おすすめ（最速）',5],['乗換少なめ',14],['標準',8]];
   const seen=new Set(), routes=[];
+  const sigOf=r=>r.segments.map(s=>s.lineId+':'+s.stations[0]+'-'+s.stations[s.stations.length-1]).join('|');
+  // User's registered lines first: a route built only from those lines is the top suggestion.
+  const setup0=Settings.setup()||{}; const fam=matchFamiliarLines(GRAPH,setup0.line||'');
+  if(fam.size){ const r=findRoutes(GRAPH,searchState.from,searchState.to,8,fam);
+    if(r){ const onlyFam=r.segments.every(s=>s.lineId.startsWith('walk-')||fam.has(s.lineId));
+      if(onlyFam){ routes.push({label:'おすすめ（いつもの路線）',...r}); seen.add(sigOf(r)); } } }
+  const variants=[['最速',5],['乗換少なめ',14],['標準',8]];
+  const rest=[];
   variants.forEach(([label,pen])=>{ const r=findRoutes(GRAPH,searchState.from,searchState.to,pen); if(!r) return;
-    const sig=r.segments.map(s=>s.lineId+':'+s.stations[0]+'-'+s.stations[s.stations.length-1]).join('|');
-    if(seen.has(sig)) return; seen.add(sig); routes.push({label,...r}); });
+    if(seen.has(sigOf(r))) return; seen.add(sigOf(r)); rest.push({label,...r}); });
+  rest.sort((a,b)=>a.minutes-b.minutes);
+  if(rest.length&&!routes.length) rest[0].label='おすすめ（最速）';
+  routes.push(...rest);
   if(!routes.length){ box.innerHTML='<p>保存済みデータの範囲では経路が見つかりませんでした。</p>'; return; }
-  routes.sort((a,b)=>a.minutes-b.minutes);
   const hist=JSON.parse(localStorage.getItem('sn-history')||'[]'); hist.unshift({from:searchState.from,to:searchState.to,at:Date.now()});
   localStorage.setItem('sn-history',JSON.stringify(hist.filter((h,i,a)=>a.findIndex(x=>x.from===h.from&&x.to===h.to)===i).slice(0,10)));
   const [hh,mm]=searchState.time.split(':').map(Number);
@@ -210,11 +218,11 @@ function showSetup(force){
   modal.innerHTML=`<div class="sheet"><h2>Station Navi セットアップ</h2>
   <p class="muted">設定はこの端末内にだけ保存されます。アカウント登録は不要です。選んだ地域の駅データをダウンロードします。</p>
   <label>居住・利用地域（都道府県）</label><select id="suPref">${prefs.map(p=>`<option>${p}</option>`).join('')}</select>
-  <label>よく利用する出発駅</label><input id="suFrom" placeholder="例: 登戸">
-  <label>よく利用する目的駅</label><input id="suTo" placeholder="例: 霞ヶ関">
-  <label>よく利用する路線</label><input id="suLine" placeholder="例: 小田急線">
+  <label>よく利用する出発駅</label><input id="suFrom" placeholder="駅名を入力">
+  <label>よく利用する目的駅</label><input id="suTo" placeholder="駅名を入力">
+  <label>よく利用する路線</label><input id="suLine" placeholder="路線名を入力（複数は空白区切り）">
   <label>通勤・通学の有無</label><select id="suCommute"><option value="commute">通勤</option><option value="school">通学</option><option value="none">なし</option></select>
-  <label>よく使う乗換駅</label><input id="suTransfer" placeholder="例: 代々木上原">
+  <label>よく使う乗換駅</label><input id="suTransfer" placeholder="駅名を入力（複数は空白区切り）">
   <div class="row" style="margin-top:10px"><button class="sub" id="suGps">📍 現在地を使う</button></div><div id="suNear" class="muted"></div>
   <div style="height:12px"></div><button id="suDone" style="width:100%">設定して始める</button>
   ${force?'<div style="height:8px"></div><button class="sub" id="suCancel" style="width:100%">キャンセル</button>':''}</div>`;

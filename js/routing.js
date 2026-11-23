@@ -14,12 +14,22 @@ function buildGraph(packs){
     lines.set(lid,wl); [a,b].forEach(n=>{ if(!stations.get(n).lines.includes(lid)) stations.get(n).lines.push(lid); }); });
   return {stations,lines};
 }
-function findRoutes(graph,from,to,transferPenalty){
+function matchFamiliarLines(graph,text){
+  const tokens=String(text||'').split(/[\s,、・]+/).filter(Boolean).map(t=>t.replace(/線$/,''));
+  const set=new Set(); if(!tokens.length) return set;
+  graph.lines.forEach((l,id)=>{ if(id.startsWith('walk-'))return;
+    const core=l.name.replace(/^JR/,'').replace(/^東京メトロ/,'').replace(/^大阪メトロ/,'').replace(/^東急/,'').replace(/^京王/,'').replace(/^小田急/,'小田急').replace(/線(支線)?$/,'').replace(/支線$/,'');
+    const raw=l.name.replace(/線(支線)?$/,'');
+    tokens.forEach(t=>{ if(t.length>=2&&core.length>=2&&(raw.includes(t)||core.includes(t)||t.includes(core))) set.add(id); }); });
+  return set;
+}
+function findRoutes(graph,from,to,transferPenalty,familiar){
+  const lineCost=id=>{ if(!familiar||!familiar.size) return 0; if(id.startsWith('walk-')) return 0; return familiar.has(id)?0:40; };
   const {stations,lines}=graph;
   if(!stations.has(from)||!stations.has(to)) return null;
   const startKeys=stations.get(from).lines.map(l=>from+'|'+l);
   const dist=new Map(), prev=new Map(), pq=[];
-  startKeys.forEach(k=>{dist.set(k,0);pq.push([0,k,0]);});
+  startKeys.forEach(k=>{const c=lineCost(k.split('|')[1]); dist.set(k,c);pq.push([c,k,0]);});
   const push=(d,k,t)=>{pq.push([d,k,t]);};
   while(pq.length){
     pq.sort((a,b)=>a[0]-b[0]); const [d,key,tr]=pq.shift();
@@ -32,7 +42,7 @@ function findRoutes(graph,from,to,transferPenalty){
       const nd=d+(j>idx?(ns.min||2):(line.stations[idx].min||2)); const nk=ns.name+'|'+lineId;
       if(nd<(dist.get(nk)??Infinity)){dist.set(nk,nd);prev.set(nk,{from:key,via:'ride'});push(nd,nk,tr);} });
     // transfer
-    stations.get(stName).lines.forEach(l2=>{ if(l2===lineId)return; const nk=stName+'|'+l2; const nd=d+transferPenalty;
+    stations.get(stName).lines.forEach(l2=>{ if(l2===lineId)return; const nk=stName+'|'+l2; const nd=d+transferPenalty+lineCost(l2);
       if(nd<(dist.get(nk)??Infinity)){dist.set(nk,nd);prev.set(nk,{from:key,via:'transfer'});push(nd,nk,tr+1);} });
   }
   let best=null,bestKey=null;
