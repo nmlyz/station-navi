@@ -3,12 +3,13 @@ let PACKS=[], GRAPH=null, MANIFEST=null, TAB='home';
 let searchState={from:'',to:'',mode:'dep',time:''};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2600);}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmtDT(v){ const d=new Date(v); if(isNaN(d)) return String(v||''); return d.toLocaleString('ja-JP',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
 function fmtTime(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 function applyTheme(){const s=Settings.load();document.body.classList.toggle('dark',s.dark==='dark');document.body.classList.toggle('light',s.dark==='light');}
 async function reloadGraph(){ PACKS=await DB.allPacks(); GRAPH=buildGraph(PACKS); updateNet(); }
 function updateNet(){ const on=navigator.onLine; const b=$('#netBadge'); b.textContent=on?'オンライン':'オフライン'; b.classList.toggle('off',!on);
   const bar=$('#offlineBar'); if(!on){ bar.classList.remove('hidden'); const last=PACKS.map(p=>p._updatedAt||p.updated).sort().pop()||'未取得';
-    bar.textContent='オフラインモード｜保存データで検索できます｜データ最終更新: '+esc(last)+'｜運行情報などのリアルタイム情報は利用できません'; }
+    bar.textContent='オフラインモード｜保存データで検索できます｜データ最終更新: '+fmtDT(last)+'｜運行情報などのリアルタイム情報は利用できません'; }
   else bar.classList.add('hidden'); }
 async function ensureManifest(){ if(MANIFEST) return MANIFEST; try{MANIFEST=await (await fetch('data/manifest.json')).json();}catch(e){ MANIFEST={packs:[],unsupportedPrefs:[]}; } return MANIFEST; }
 async function downloadPack(id,btn){
@@ -136,8 +137,8 @@ async function viewDownloads(){
   <p class="muted">駅・路線データはIndexedDBに保存され、オフラインでも検索できます。全国一括ではなく地域別です。</p>
   ${m.packs.map(p=>{ const ins=installed[p.id]; return `<div class="card"><b>${esc(p.name)}</b>
     <div class="kv"><span>状態</span><span>${ins?'保存済み':'未保存'}</span></div>
-    <div class="kv"><span>路線</span><span style="text-align:right">${p.lines.map(esc).join('、')}</span></div>
-    ${ins?`<div class="kv"><span>容量</span><span>${ins._size?Math.round(ins._size/1024)+' KB':'―'}</span></div><div class="kv"><span>最終更新</span><span>${esc(ins._updatedAt||ins.updated)}</span></div>`:''}
+    <div class="lineslist"><span class="muted">路線</span><br>${p.lines.map(esc).join('、')}</div>
+    ${ins?`<div class="kv"><span>容量</span><span>${ins._size?Math.round(ins._size/1024)+' KB':'―'}</span></div><div class="kv"><span>最終更新</span><span>${esc(fmtDT(ins._updatedAt||ins.updated))}</span></div>`:''}
     <progress id="prog-${p.id}" value="0" max="100" class="hidden"></progress><div id="progtext-${p.id}" class="muted"></div>
     <div class="row" style="margin-top:8px">${ins?`<button class="sub" data-upd="${p.id}">更新を確認</button><button class="danger" data-delpack="${p.id}">削除</button>`:`<button data-dl="${p.id}">ダウンロード</button>`}</div></div>`;}).join('')}
   <div class="row"><button class="sub" id="checkUpdate">今すぐ更新を確認</button><button class="sub" id="gtfsBtn">GTFS-JPを読み込む</button></div>
