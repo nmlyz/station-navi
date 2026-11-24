@@ -392,10 +392,9 @@ function showSetup(force){
 /* ---------- Boot ---------- */
 (async function boot(){
   applyTheme(); registerSW(); if(CommuteMode.enabled()) CommuteMode.start();
-  const tabbar=document.querySelector('.tabbar');
-  const placeTab=()=>{ const vv=window.visualViewport; if(!tabbar) return; if(vv&&vv.height<window.innerHeight*0.78){ tabbar.style.display='none'; } else { tabbar.style.display=''; tabbar.style.bottom='0px'; } };
-  if(window.visualViewport){ window.visualViewport.addEventListener('resize',placeTab); window.visualViewport.addEventListener('scroll',placeTab); }
-  window.addEventListener('resize',placeTab); placeTab();
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+  document.addEventListener('gesturechange',e=>e.preventDefault());
+  document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
   await DB.open(); await ensureManifest(); await reloadGraph();
   document.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>nav(b.dataset.tab));
   window.addEventListener('online',async()=>{ updateNet(); const s=Settings.load(); if(s.autoUpdate){ await Updater.checkAndUpdate(); await reloadGraph(); if(TAB==='downloads')render(); } });

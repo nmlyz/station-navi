@@ -3,6 +3,7 @@
 body.dark{--bg:#0b1118;--card:#151e29;--text:#edf3f9;--muted:#93a7bb;--border:#27374a;--input:#0e1620;--shadow:0 6px 24px rgba(0,0,0,.35)}
 body.light{--bg:#eef2f7;--card:#ffffff;--text:#16222e;--muted:#68798c;--border:#dde5ee;--input:#f4f7fb;--shadow:0 6px 24px rgba(18,38,63,.08)}
 *{box-sizing:border-box}
+html,body{touch-action:manipulation}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);padding-bottom:92px;-webkit-font-smoothing:antialiased}
 .ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
 .topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
