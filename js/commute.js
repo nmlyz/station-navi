@@ -47,6 +47,7 @@ const CommuteMode={
       +'<div style="font-size:15px;margin-top:4px">'+esc(plan.from)+'駅の近くです（約'+Math.round(d*1000)+'m）→ '+esc(plan.to)+'方面</div>'
       +'<span class="linechip" style="background:'+s.line.color+';margin-top:8px">'+esc(s.line.name)+'</span>'+(platNum?' <span class="plat" style="--lc:'+s.line.color+'">'+platNum+'番ホーム</span>':'')
       +'<div style="font-size:23px;font-weight:800;line-height:1.45;margin-top:6px">'+esc(types[0]||'')+' '+esc(dir.terminal)+'行き<br>に乗ってください</div>'
+      +'<div style="font-size:13px;opacity:.85;margin-top:2px">行き先が「'+esc(alight)+'」か、それより先の電車なら乗れます</div>'
       +'<div style="font-size:14px;margin-top:4px">'+esc(plan.from)+' → '+esc(plan.to)+'（約'+r.minutes+'分・乗換'+r.transfers+'回）</div>'
       +'<div style="font-size:12px;opacity:.8;margin-top:2px">この表示は駅から離れるまで出続けます</div>';
     box.classList.remove('hidden');

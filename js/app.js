@@ -194,10 +194,16 @@ function renderRoutes(reorder){
         +(s._extra?'<div class="muted" style="margin-top:4px">（乗り間違え対応で組み直した区間）</div>':'')
         +'<div class="dep-line"><span>発車目安 <b>'+fmtTime(deps[si])+'</b> 発</span>'+(platNum?'<span class="plat">'+esc(platNum)+'番ホーム</span>':'<span class="muted">ホーム番号: 情報未取得</span>')+'</div>'
         +'<div class="muted" style="font-size:12px;margin-top:2px">種別・発車時刻は目安です（時刻表データ取得中）</div>'
-        +'<ul class="okng">'
-        +'<li class="ok"><svg class="ic"><use href="#i-check"/></svg><span><b>乗っていい</b>: '+esc(dir.terminal)+'行き（この方面の電車）<br><span class="muted">行き先が途中の駅止まりの電車も、降りる駅を通るなら乗れます</span></span></li>'
-        +'<li class="ng"><svg class="ic"><use href="#i-ban"/></svg><span><b>乗ったらダメ</b>: '+esc(oppTerm)+'行き（逆方向）</span></li>'
-        +'</ul>'
+        +(()=>{ const destCands=[...new Set([dir.terminal,alight])];
+          const okChips=destCands.map(d=> s._extra? '<span class="dchip ok">'+esc(d)+'行き</span>' : '<button class="dchip ok'+(d===curDest?' sel':'')+'" data-destpick="'+esc(d)+'" data-sig="'+sig+'" data-i="'+s._i+'">'+esc(d)+'行き</button>').join('');
+          const midNames=[]; const stp=bI<aI?1:-1; for(let k=bI+stp;k!==aI;k+=stp) midNames.push(allN[k]);
+          const midTxt=midNames.length? midNames.slice(0,4).join('・')+(midNames.length>4?' など':'') : '';
+          return '<div style="margin-top:10px"><b style="color:var(--good)">乗っていい行き先（タップで再計算）</b></div>'
+          +'<div class="dchips">'+okChips+'</div>'
+          +'<div class="muted">行き先が「'+esc(alight)+'」か、それより先の駅なら乗れます。タップすると、その行き先に乗れる最速の種別で時刻を再計算します</div>'
+          +'<div style="margin-top:8px"><b style="color:var(--ng)">乗ったらダメ</b></div>'
+          +'<div class="dchips"><span class="dchip ng">'+esc(oppTerm)+'行き（逆方向）</span></div>'
+          +(midTxt? '<div class="muted">行き先が「'+esc(alight)+'」より手前（'+esc(midTxt)+'）止まりの電車もダメです</div>':''); })()
         +'<div class="muted" style="margin-top:6px">この区間に停車する種別: '+(types.length?types.map(esc).join(' / '):'情報未取得')+'</div>'
         +'<div class="muted">種別や行き先を間違えて乗ったときは、上の種別・行き先を変更すると時刻とルートが組み直されます。</div>'
         +'</div></div>'
@@ -224,6 +230,12 @@ function renderRoutes(reorder){
   box.querySelectorAll('.seg-type').forEach(sel=>sel.onchange=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===sel.dataset.sig); if(!r)return; r.typeSel[+sel.dataset.i]=sel.value; r._ds=null; renderRoutes(false); toast('種別を変更して再計算しました'); });
   box.querySelectorAll('.seg-dest').forEach(sel=>sel.onchange=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===sel.dataset.sig); if(!r)return; r.destSel[+sel.dataset.i]=sel.value; r._ds=null; renderRoutes(false); toast('行き先を変更して組み直しました'); });
   box.querySelectorAll('.via-btn').forEach(b=>b.onclick=()=>{ const k=b.dataset.via; if(OPEN_VIA.has(k)) OPEN_VIA.delete(k); else OPEN_VIA.add(k); renderRoutes(false); });
+  box.querySelectorAll('[data-destpick]').forEach(b=>b.onclick=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===b.dataset.sig); if(!r) return;
+    const i=+b.dataset.i; const seg=r.segments[i]; if(!seg) return;
+    const types=usableTypes(seg.line,seg.stations[0],seg.stations[seg.stations.length-1]);
+    const fastest=types.slice().sort((a,b2)=>(TYPE_FACTOR[a]!=null?TYPE_FACTOR[a]:1)-(TYPE_FACTOR[b2]!=null?TYPE_FACTOR[b2]:1))[0];
+    r.destSel=r.destSel||{}; r.typeSel=r.typeSel||{}; r.destSel[i]=b.dataset.destpick; if(fastest) r.typeSel[i]=fastest; r._ds=null; renderRoutes(false);
+    toast('「'+b.dataset.destpick+'行き」最速の種別（'+(fastest||'')+'）で再計算しました'); });
   box.querySelectorAll('[data-favroute]').forEach(b=>b.onclick=()=>{ askFavName('お気に入りに名前を付ける', LAST.from+' → '+LAST.to, v=>{
     const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
     favs.unshift({name:v||(LAST.from+' → '+LAST.to),from:LAST.from,to:LAST.to}); localStorage.setItem('sn-favs',JSON.stringify(favs.slice(0,20))); toast('お気に入りに保存しました'); }); });

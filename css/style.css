@@ -72,6 +72,12 @@ progress{width:100%;height:10px}
 .okng li.ok .ic{color:var(--good)}
 .okng li.ng .ic{color:var(--ng)}
 .okng li.ng{color:var(--muted)}
+.dchips{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0}
+.dchip{border:1.5px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:6px 12px;font-size:15px;font-weight:700;font-family:inherit}
+button.dchip{cursor:pointer}
+.dchip.ok{border-color:var(--good);color:var(--good)}
+.dchip.ng{border-color:var(--ng);color:var(--ng);opacity:.85}
+.dchip.sel{background:rgba(127,127,127,.22);box-shadow:0 0 0 1.5px currentColor inset}
 .rt-line{font-size:15px;font-weight:700}
 .sug-line{display:block;font-size:14px;margin-top:3px}
 .dep-time{color:var(--accent);font-size:17px;font-weight:800}
