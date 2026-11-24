@@ -96,6 +96,11 @@ function displaySegments(r){
   }
   return out;
 }
+function routeTotalMinutes(r){
+  const ds=r._ds||displaySegments(r);
+  let total=0; ds.forEach((s,i)=>{ total+=segMinutes(s); if(i<ds.length-1) total+=s.lineId.startsWith('walk-')?0:5; });
+  return total;
+}
 function computeTimes(r){
   const ds=r._ds||displaySegments(r);
   const deps=[], arrs=[]; let t=new Date(r.baseDep);
@@ -143,7 +148,7 @@ function doSearch(){
   const [hh,mm]=searchState.time.split(':').map(Number);
   routes.forEach(r=>{ r.fare=routeFare(r); r.depOverrides={}; r.typeSel={}; r.destSel={};
     const anchor=new Date(); anchor.setHours(hh,mm,0,0);
-    r.baseDep=searchState.mode==='arr'?new Date(anchor.getTime()-r.minutes*60000):anchor; });
+    r.baseDep=searchState.mode==='arr'?new Date(anchor.getTime()-routeTotalMinutes(r)*60000):anchor; });
   const first=routes[0]; if(first.label==='最速') first.label='おすすめ（最速）'; else if(routes.length>1&&routes[1].label==='最速') routes[1].label='最速';
   if(first.label==='いつもの路線') first.label='おすすめ（いつもの路線）';
   LAST={routes:routes.slice(0,5),from:fromR,to:toR};
@@ -218,7 +223,7 @@ function viewHome(){
   ${commutes.length?commutes.map(c=>{ const fam=matchFamiliarLines(GRAPH,setup.line||'');
     let rFam=null; if(fam.size&&GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)){ const rr=findRoutes(GRAPH,c.from,c.to,8,fam); if(rr&&rr.segments.every(s=>s.lineId.startsWith('walk-')||fam.has(s.lineId))) rFam=rr; }
     const rFast=GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)?findRoutes(GRAPH,c.from,c.to,5):null;
-    const depFor=(r)=>{ const [h,m]=c.arriveBy.split(':').map(Number); const d=new Date(); d.setHours(h,m,0,0); return fmtTime(new Date(d.getTime()-r.minutes*60000)); };
+    const depFor=(r)=>{ const [h,m]=c.arriveBy.split(':').map(Number); const d=new Date(); d.setHours(h,m,0,0); return fmtTime(new Date(d.getTime()-routeTotalMinutes(r)*60000)); };
     let sug='経路データ未取得';
     if(c.arriveBy&&(rFam||rFast)){ const parts=[];
       if(rFam) parts.push('いつもの路線の出発目安 '+depFor(rFam)+'（所要 '+rFam.minutes+'分・乗換'+rFam.transfers+'回）');
