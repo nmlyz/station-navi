@@ -225,10 +225,15 @@ function renderRoutes(reorder){
   box.querySelectorAll('[data-favroute]').forEach(b=>b.onclick=()=>{ const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
     favs.unshift({from:LAST.from,to:LAST.to}); localStorage.setItem('sn-favs',JSON.stringify(favs.slice(0,20))); toast('お気に入りに保存しました'); });
 }
+function wireCommuteToggle(chkId,statusId){ const t=document.getElementById(chkId); if(!t) return; const st=document.getElementById(statusId);
+  const paint=()=>{ if(st) st.textContent=CommuteMode.enabled()?'現在ONです（アプリを開いている間、駅に近づくと何行きか表示します）':'現在OFFです'; };
+  t.checked=CommuteMode.enabled(); paint();
+  t.onchange=()=>{ CommuteMode.setEnabled(t.checked); if(t.checked&&!Commute.list().length) toast('先に設定タブで通勤経路を登録してください'); paint(); if(t.checked) CommuteMode.tick(); }; }
 function viewHome(){
   const setup=Settings.setup()||{}; const commutes=Commute.list();
   const hist=JSON.parse(localStorage.getItem('sn-history')||'[]');
   $('#view').innerHTML=`
+  <div class="card"><div class="switch" style="border-bottom:0;padding:2px 0"><span><b style="font-size:16px">通勤モード</b><br><span class="muted" id="cmStatusHome">現在OFFです</span></span><input type="checkbox" id="cmToggleHome"></div></div>
   <div class="card"><h2>${esc(setup.pref||'地域未設定')} の通勤・通学</h2>
   ${commutes.length?commutes.map(c=>{ const fam=matchFamiliarLines(GRAPH,setup.line||'');
     let rFam=null; if(fam.size&&GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)){ const rr=findRoutes(GRAPH,c.from,c.to,8,fam); if(rr&&rr.segments.every(s=>s.lineId.startsWith('walk-')||fam.has(s.lineId))) rFam=rr; }
@@ -244,7 +249,7 @@ function viewHome(){
   ${searchCard(true)}
   <div class="card"><h2>運行情報</h2><p class="muted">リアルタイム運行情報: 情報未取得。公共交通オープンデータセンター（ODPT）等は利用登録・APIキーが必要なため、本アプリにはキーを埋め込んでいません。遅延・運休などの最新情報は各事業者の公式発表でご確認ください。保存済みデータを最新情報のように表示することはありません。</p></div>
   ${hist.length?`<div class="card"><h2>最近の検索</h2>${hist.map(h=>`<div class="kv"><span>${esc(h.from)} → ${esc(h.to)}</span><button class="sub" data-go="${esc(h.from)}|${esc(h.to)}">検索</button></div>`).join('')}</div>`:''}`;
-  bindSearchCard();
+  bindSearchCard(); wireCommuteToggle('cmToggleHome','cmStatusHome');
   const ti=$('#timeInput'); if(ti) ti.onchange=()=>{ const el=$('#time24'); if(el) el.textContent='入力中の時刻（24時間表示）: '+(ti.value||''); };
   document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ const [f,t]=b.dataset.go.split('|'); searchState.from=f; searchState.to=t;
     if(b.dataset.arrive){ searchState.mode='arr'; searchState.time=b.dataset.arrive; } else { searchState.mode='dep'; searchState.time=fmtTime(new Date()); }
@@ -318,7 +323,7 @@ function viewSettings(){
   <label>自宅の最寄り駅</label><input id="cFrom" placeholder="駅名を入力して候補から選択" autocomplete="off"><div id="cFrom-sug" class="suggest hidden"></div>
   <label>職場・学校の最寄り駅</label><input id="cTo" placeholder="駅名を入力して候補から選択" autocomplete="off"><div id="cTo-sug" class="suggest hidden"></div>
   <label>到着希望時刻</label><input type="time" id="cArrive">
-  <label>利用する曜日（カンマ区切り）</label><input id="cDays" placeholder="月,火,水,木,金">
+  <label>利用する曜日（タップで選択）</label><div class="dayrow" id="cDays">${['月','火','水','木','金','土','日'].map((d,i)=>`<button type="button" class="daychip${i<5?' on':''}" data-day="${d}">${d}</button>`).join('')}</div>
   <div style="height:10px"></div><button id="cAdd" style="width:100%">登録する</button>
   ${commutes.map(c=>`<div class="kv"><span><b>${esc(c.name)}</b><br><span class="muted">${esc(c.from)} → ${esc(c.to)} / 到着希望 ${esc(c.arriveBy||'未設定')}</span></span><button class="sub" data-cdel="${c.id}">削除</button></div>`).join('')}
   </div>
@@ -331,12 +336,12 @@ function viewSettings(){
   ['swAuto','swWifi','swMobile','selDark'].forEach(id=>$('#'+id).onchange=save);
   $('#resetAll').onclick=async()=>{ Settings.clearAll(); const packs=await DB.allPacks(); for(const p of packs) await DB.delPack(p.id); await reloadGraph(); toast('初期化しました'); showSetup(false); render(); };
   bindSuggest('cFrom',null); bindSuggest('cTo',null);
-  const cmT=$('#cmToggle'); if(cmT){ cmT.checked=CommuteMode.enabled();
-    cmT.onchange=()=>{ CommuteMode.setEnabled(cmT.checked); $('#cmStatus').textContent=cmT.checked?(Commute.list().length?'現在ONです（アプリを開いている間だけ動作します）':'ONにしました。通勤経路が未登録の場合は先に登録してください。'):'OFFにしました。'; if(cmT.checked) CommuteMode.tick(); };
-    $('#cmStatus').textContent=CommuteMode.enabled()?'現在ONです（アプリを開いている間だけ動作します）':'現在OFFです'; }
+  wireCommuteToggle('cmToggle','cmStatus');
+  document.querySelectorAll('#cDays .daychip').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   $('#cAdd').onclick=()=>{ const name=$('#cName').value.trim(); if($('#cFrom').dataset.picked!==$('#cFrom').value.trim()||$('#cTo').dataset.picked!==$('#cTo').value.trim()){ toast('駅は候補をタップして選んでください'); return; } const fromR=resolveStation(GRAPH,$('#cFrom').value.trim()),toR=resolveStation(GRAPH,$('#cTo').value.trim());
     if(!name||!fromR||!toR){ toast('名前と、候補にある駅を選んでください'); return; } const from=fromR,to=toR;
-    Commute.add({name,from,to,arriveBy:$('#cArrive').value,days:$('#cDays').value.split(',').map(x=>x.trim()).filter(Boolean)}); toast('通勤経路を登録しました'); render(); };
+    const days=[...document.querySelectorAll('#cDays .daychip.on')].map(b=>b.dataset.day);
+    Commute.add({name,from,to,arriveBy:$('#cArrive').value,days}); toast('通勤経路を登録しました'); render(); };
   document.querySelectorAll('[data-cdel]').forEach(b=>b.onclick=()=>{ Commute.remove(+b.dataset.cdel); render(); });
 }
 function showSetup(force){
