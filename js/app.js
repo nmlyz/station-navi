@@ -392,6 +392,7 @@ function showSetup(force){
 /* ---------- Boot ---------- */
 (async function boot(){
   applyTheme(); registerSW(); if(CommuteMode.enabled()) CommuteMode.start();
+  if(window.navigator.standalone===false && !(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)) document.body.classList.add('inbrowser');
   document.addEventListener('gesturestart',e=>e.preventDefault());
   document.addEventListener('gesturechange',e=>e.preventDefault());
   document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});

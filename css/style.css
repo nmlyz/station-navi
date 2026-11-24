@@ -3,17 +3,17 @@
 body.dark{--bg:#0b1118;--card:#151e29;--text:#edf3f9;--muted:#93a7bb;--border:#27374a;--input:#0e1620;--shadow:0 6px 24px rgba(0,0,0,.35)}
 body.light{--bg:#eef2f7;--card:#ffffff;--text:#16222e;--muted:#68798c;--border:#dde5ee;--input:#f4f7fb;--shadow:0 6px 24px rgba(18,38,63,.08)}
 *{box-sizing:border-box}
-html,body{touch-action:manipulation}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);padding-bottom:92px;-webkit-font-smoothing:antialiased}
+html,body{touch-action:manipulation;height:100%}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column}
 .ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
-.topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.topbar{position:relative;flex:0 0 auto;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 .brand{font-weight:800;font-size:19px;display:flex;align-items:center;gap:9px;letter-spacing:.2px}
 .logo{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 12px rgba(11,124,196,.35)}
 .logo .ic{width:20px;height:20px}
 .ver{font-size:11px;color:var(--muted);font-weight:600}
 .badge{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--input);border:1px solid var(--border);font-weight:600}
 .badge.off{color:var(--warn);font-weight:700}
-main{max-width:720px;margin:0 auto;padding:14px}
+main{max-width:720px;width:100%;margin:0 auto;padding:14px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
 h2{font-size:17px;margin:4px 0 12px;font-weight:800;letter-spacing:.2px} h3{font-size:15px;margin:10px 0 6px}
 label{font-size:13px;color:var(--muted);display:block;margin:10px 0 4px;font-weight:600}
@@ -29,11 +29,12 @@ button:active{opacity:.78}
 .suggest{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:6px;box-shadow:var(--shadow)}
 .suggest button{display:block;width:100%;text-align:left;background:var(--card);color:var(--text);border-radius:0;border-bottom:1px solid var(--border);font-weight:600;min-height:52px;box-shadow:none}
 .suggest small{display:block;color:var(--muted);font-weight:400}
-.tabbar{position:fixed;left:0;right:0;width:100%;box-sizing:border-box;bottom:0;z-index:100;display:flex;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.tabbar{position:relative;flex:0 0 auto;width:100%;box-sizing:border-box;z-index:100;display:flex;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
 .tabbar button{flex:1;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0 5px;border-radius:14px;min-height:56px;box-shadow:none}
 .tabbar button .ic{width:23px;height:23px}
 .tabbar button span{font-size:11px;font-weight:600}
 .tabbar button.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+body.inbrowser .tabbar{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
 .hidden{display:none!important}
 .offline-bar{background:#fff3df;color:#8a5a00;padding:10px 16px;font-size:13px;text-align:center}
 .timeline{position:relative;margin:10px 0 0 6px;padding-left:24px;border-left:3px solid var(--lc,#999)}
