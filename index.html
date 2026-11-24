@@ -10,15 +10,16 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/style.css?v=1.4.0">
+<link rel="stylesheet" href="css/style.css?v=1.5.0">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">🚆 Station Navi <span class="ver">v1.4.0</span></div>
+  <div class="brand">🚆 Station Navi <span class="ver">v1.5.0</span></div>
   <div id="netBadge" class="badge">確認中</div>
 </header>
 <div id="offlineBar" class="offline-bar hidden"></div>
 <main id="view"></main>
+<div id="commuteAlert" class="hidden" style="position:fixed;top:10px;left:10px;right:10px;z-index:200;background:var(--card);border:2px solid var(--accent);border-radius:14px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.45)"></div>
 <nav class="tabbar">
   <button data-tab="home" class="active">🏠<span>ホーム</span></button>
   <button data-tab="search">🔍<span>検索</span></button>
@@ -28,14 +29,14 @@
 </nav>
 <div id="setupModal" class="modal hidden"></div>
 <div id="toast" class="toast hidden"></div>
-<script src="js/database.js?v=1.4.0"></script>
-<script src="js/routing.js?v=1.4.0"></script>
-<script src="js/search.js?v=1.4.0"></script>
-<script src="js/gps.js?v=1.4.0"></script>
-<script src="js/settings.js?v=1.4.0"></script>
-<script src="js/commute.js?v=1.4.0"></script>
-<script src="js/updater.js?v=1.4.0"></script>
-<script src="js/offline.js?v=1.4.0"></script>
-<script src="js/app.js?v=1.4.0"></script>
+<script src="js/database.js?v=1.5.0"></script>
+<script src="js/routing.js?v=1.5.0"></script>
+<script src="js/search.js?v=1.5.0"></script>
+<script src="js/gps.js?v=1.5.0"></script>
+<script src="js/settings.js?v=1.5.0"></script>
+<script src="js/commute.js?v=1.5.0"></script>
+<script src="js/updater.js?v=1.5.0"></script>
+<script src="js/offline.js?v=1.5.0"></script>
+<script src="js/app.js?v=1.5.0"></script>
 </body>
 </html>

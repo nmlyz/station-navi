@@ -290,6 +290,9 @@ function viewSettings(){
   ['swAuto','swWifi','swMobile','selDark'].forEach(id=>$('#'+id).onchange=save);
   $('#resetAll').onclick=async()=>{ Settings.clearAll(); const packs=await DB.allPacks(); for(const p of packs) await DB.delPack(p.id); await reloadGraph(); toast('初期化しました'); showSetup(false); render(); };
   bindSuggest('cFrom',null); bindSuggest('cTo',null);
+  const cmT=$('#cmToggle'); if(cmT){ cmT.checked=CommuteMode.enabled();
+    cmT.onchange=()=>{ CommuteMode.setEnabled(cmT.checked); $('#cmStatus').textContent=cmT.checked?'ONにしました。通勤経路が未登録の場合は先に登録してください。':'OFFにしました。'; if(cmT.checked) CommuteMode.tick(); };
+    $('#cmStatus').textContent=CommuteMode.enabled()?'現在ONです（アプリを開いている間だけ動作します）':'現在OFFです'; }
   $('#cAdd').onclick=()=>{ const name=$('#cName').value.trim(); if($('#cFrom').dataset.picked!==$('#cFrom').value.trim()||$('#cTo').dataset.picked!==$('#cTo').value.trim()){ toast('駅は候補をタップして選んでください'); return; } const fromR=resolveStation(GRAPH,$('#cFrom').value.trim()),toR=resolveStation(GRAPH,$('#cTo').value.trim());
     if(!name||!fromR||!toR){ toast('名前と、候補にある駅を選んでください'); return; } const from=fromR,to=toR;
     Commute.add({name,from,to,arriveBy:$('#cArrive').value,days:$('#cDays').value.split(',').map(x=>x.trim()).filter(Boolean)}); toast('通勤経路を登録しました'); render(); };
@@ -347,7 +350,7 @@ function showSetup(force){
 }
 /* ---------- Boot ---------- */
 (async function boot(){
-  applyTheme(); registerSW();
+  applyTheme(); registerSW(); if(CommuteMode.enabled()) CommuteMode.start();
   const tabbar=document.querySelector('.tabbar');
   const placeTab=()=>{ const vv=window.visualViewport; if(!tabbar) return; if(vv&&vv.height<window.innerHeight*0.78){ tabbar.style.display='none'; } else { tabbar.style.display=''; tabbar.style.bottom='0px'; } };
   if(window.visualViewport){ window.visualViewport.addEventListener('resize',placeTab); window.visualViewport.addEventListener('scroll',placeTab); }

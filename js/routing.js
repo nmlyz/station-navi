@@ -4,8 +4,8 @@ function buildGraph(packs){
   const stations=new Map(), lines=new Map();
   packs.forEach(p=>p.lines.forEach(l=>{
     lines.set(l.id,l);
-    l.stations.forEach((s,i)=>{ if(!stations.has(s.name)) stations.set(s.name,{name:s.name,lines:[],lat:s.lat,lon:s.lon,prefs:p.prefs,yomi:s.yomi});
-      const st=stations.get(s.name); if(!st.lines.includes(l.id))st.lines.push(l.id); if(s.lat&&!st.lat){st.lat=s.lat;st.lon=s.lon;} if(s.yomi&&!st.yomi)st.yomi=s.yomi; });
+    l.stations.forEach((s,i)=>{ if(!stations.has(s.name)) stations.set(s.name,{name:s.name,lines:[],lat:s.lat,lon:s.lng,prefs:p.prefs,yomi:s.yomi});
+      const st=stations.get(s.name); if(!st.lines.includes(l.id))st.lines.push(l.id); if(s.lat&&!st.lat){st.lat=s.lat;st.lon=s.lng;} if(s.yomi&&!st.yomi)st.yomi=s.yomi; });
   }));
   // Walking transfer links between differently-named adjacent stations (real interchange pairs)
   const LINKS=[["武蔵溝ノ口","溝の口",3],["仲御徒町","御徒町",4],["東銀座","銀座",3],["新御茶ノ水","御茶ノ水",3],["淡路町","小伝馬町",4]];
