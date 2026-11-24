@@ -393,6 +393,9 @@ function showSetup(force){
 (async function boot(){
   applyTheme(); registerSW(); if(CommuteMode.enabled()) CommuteMode.start();
   if(window.navigator.standalone===false && !(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)) document.body.classList.add('inbrowser');
+  const tabbarEl=document.querySelector('.tabbar');
+  const kbCheck=()=>{ const vv=window.visualViewport; if(!tabbarEl||!vv) return; tabbarEl.style.display=(vv.height<window.innerHeight*0.8)?'none':''; };
+  if(window.visualViewport){ window.visualViewport.addEventListener('resize',kbCheck); kbCheck(); }
   document.addEventListener('gesturestart',e=>e.preventDefault());
   document.addEventListener('gesturechange',e=>e.preventDefault());
   document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
