@@ -223,8 +223,18 @@ function renderRoutes(reorder){
   box.querySelectorAll('.seg-type').forEach(sel=>sel.onchange=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===sel.dataset.sig); if(!r)return; r.typeSel[+sel.dataset.i]=sel.value; r._ds=null; renderRoutes(false); toast('種別を変更して再計算しました'); });
   box.querySelectorAll('.seg-dest').forEach(sel=>sel.onchange=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===sel.dataset.sig); if(!r)return; r.destSel[+sel.dataset.i]=sel.value; r._ds=null; renderRoutes(false); toast('行き先を変更して組み直しました'); });
   box.querySelectorAll('.via-btn').forEach(b=>b.onclick=()=>{ const k=b.dataset.via; if(OPEN_VIA.has(k)) OPEN_VIA.delete(k); else OPEN_VIA.add(k); renderRoutes(false); });
-  box.querySelectorAll('[data-favroute]').forEach(b=>b.onclick=()=>{ const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
-    favs.unshift({from:LAST.from,to:LAST.to}); localStorage.setItem('sn-favs',JSON.stringify(favs.slice(0,20))); toast('お気に入りに保存しました'); });
+  box.querySelectorAll('[data-favroute]').forEach(b=>b.onclick=()=>{ askFavName('お気に入りに名前を付ける', LAST.from+' → '+LAST.to, v=>{
+    const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
+    favs.unshift({name:v||(LAST.from+' → '+LAST.to),from:LAST.from,to:LAST.to}); localStorage.setItem('sn-favs',JSON.stringify(favs.slice(0,20))); toast('お気に入りに保存しました'); }); });
+}
+function askFavName(title, initial, onOk){
+  const modal=$('#setupModal'); if(!modal) return;
+  modal.innerHTML=`<div class="sheet"><h2>${esc(title)}</h2>
+  <label>名前</label><input id="favNameInput" placeholder="例: 通勤（行き）" value="${esc(initial||'')}">
+  <div class="row" style="margin-top:14px"><button class="sub" id="favNameCancel">キャンセル</button><button id="favNameOk">保存</button></div></div>`;
+  modal.classList.remove('hidden');
+  $('#favNameCancel').onclick=()=>{ modal.classList.add('hidden'); modal.innerHTML=''; };
+  $('#favNameOk').onclick=()=>{ const v=$('#favNameInput').value.trim(); modal.classList.add('hidden'); modal.innerHTML=''; onOk(v); };
 }
 function wireCommuteToggle(chkId,statusId){ const t=document.getElementById(chkId); if(!t) return; const st=document.getElementById(statusId);
   const paint=()=>{ if(st) st.textContent=CommuteMode.enabled()?'現在ONです（アプリを開いている間、駅に近づくと何行きか表示します）':'現在OFFです'; };
@@ -260,7 +270,9 @@ function viewSearch(){ $('#view').innerHTML=searchCard(true); bindSearchCard();
   const ti=$('#timeInput'); if(ti) ti.onchange=()=>{ const el=$('#time24'); if(el) el.textContent='入力中の時刻（24時間表示）: '+(ti.value||''); }; }
 function viewFavs(){
   const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
-  $('#view').innerHTML=`<div class="card"><h2>お気に入りルート</h2>${favs.length?favs.map((f,i)=>`<div class="kv"><span>${esc(f.from)} → ${esc(f.to)}</span><span><button class="sub" data-go="${esc(f.from)}|${esc(f.to)}">検索</button> <button class="sub" data-del="${i}">削除</button></span></div>`).join(''):'<p class="muted">お気に入りはまだありません。検索結果から保存できます。</p>'}</div>`;
+  $('#view').innerHTML=`<div class="card"><h2>お気に入りルート</h2>${favs.length?favs.map((f,i)=>`<div class="kv"><span><b>${esc(f.name||(f.from+' → '+f.to))}</b>${f.name?`<br><span class="muted">${esc(f.from)} → ${esc(f.to)}</span>`:''}</span><span><button class="sub" data-go="${esc(f.from)}|${esc(f.to)}">検索</button> <button class="sub" data-rename="${i}">名前変更</button> <button class="sub" data-del="${i}">削除</button></span></div>`).join(''):'<p class="muted">お気に入りはまだありません。検索結果から保存できます。</p>'}</div>`;
+  document.querySelectorAll('[data-rename]').forEach(b=>b.onclick=()=>{ const a=JSON.parse(localStorage.getItem('sn-favs')||'[]'); const f=a[+b.dataset.rename]; if(!f) return;
+    askFavName('名前を変更', f.name||'', v=>{ if(v){ a[+b.dataset.rename].name=v; localStorage.setItem('sn-favs',JSON.stringify(a)); render(); } }); });
   document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ const [f,t]=b.dataset.go.split('|'); searchState.from=f; searchState.to=t; FAVONLY=true; searchState.mode='dep'; searchState.time=fmtTime(new Date()); nav('search'); setTimeout(doSearch,0); });
   document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ const a=JSON.parse(localStorage.getItem('sn-favs')||'[]'); a.splice(+b.dataset.del,1); localStorage.setItem('sn-favs',JSON.stringify(a)); render(); });
 }
