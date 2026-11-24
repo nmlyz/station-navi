@@ -13,7 +13,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto
 .ver{font-size:11px;color:var(--muted);font-weight:600}
 .badge{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--input);border:1px solid var(--border);font-weight:600}
 .badge.off{color:var(--warn);font-weight:700}
-main{max-width:720px;width:100%;margin:0 auto;padding:14px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+main{max-width:720px;width:100%;margin:0 auto;padding:14px;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
 h2{font-size:17px;margin:4px 0 12px;font-weight:800;letter-spacing:.2px} h3{font-size:15px;margin:10px 0 6px}
 label{font-size:13px;color:var(--muted);display:block;margin:10px 0 4px;font-weight:600}
@@ -51,7 +51,8 @@ body.inbrowser .tabbar{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:104px;z-index:60;background:#16222e;color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 progress{width:100%;height:10px}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
-.kv>span:first-child{flex:0 0 auto}
+.kv>span:first-child{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.kv button{flex:0 0 auto}
 .kv>span:last-child{text-align:right;word-break:break-word}
 .lineslist{font-size:14px;line-height:1.7;padding:6px 0;border-bottom:1px solid var(--border)}
 .switch{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}

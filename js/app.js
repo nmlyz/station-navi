@@ -28,7 +28,7 @@ async function downloadPack(id,btn){
   }catch(e){ toast('ダウンロードに失敗しました。通信を確認して再試行してください（再開できます）'); if(btn){btn.disabled=false;btn.textContent='再試行';} }
 }
 /* ---------- Views ---------- */
-function nav(tab){ TAB=tab; document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab)); render(); }
+function nav(tab){ TAB=tab; document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab)); render(); const m=document.querySelector('main'); if(m) m.scrollTop=0; }
 function render(){ ({home:viewHome,search:viewSearch,favs:viewFavs,downloads:viewDownloads,settings:viewSettings}[TAB]||viewHome)(); }
 function stationInput(id,label,val){ return `<label>${label}</label><input id="${id}" autocomplete="off" placeholder="駅名・路線名・都道府県" value="${esc(val)}"><div id="${id}-sug" class="suggest hidden"></div>`; }
 function bindSuggest(inputId,key,onPick){
