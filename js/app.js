@@ -194,13 +194,15 @@ function renderRoutes(reorder){
         +(s._extra?'<div class="muted" style="margin-top:4px">（乗り間違え対応で組み直した区間）</div>':'')
         +'<div class="dep-line"><span>発車目安 <b>'+fmtTime(deps[si])+'</b> 発</span>'+(platNum?'<span class="plat">'+esc(platNum)+'番ホーム</span>':'<span class="muted">ホーム番号: 情報未取得</span>')+'</div>'
         +'<div class="muted" style="font-size:12px;margin-top:2px">種別・発車時刻は目安です（時刻表データ取得中）</div>'
-        +(()=>{ const destCands=[...new Set([dir.terminal,alight])];
+        +(()=>{ const thDests=(s.line.through&&s.line.through[dir.terminal])||[];
+          const destCands=[...new Set([dir.terminal,...thDests,alight])];
           const okChips=destCands.map(d=> s._extra? '<span class="dchip ok">'+esc(d)+'行き</span>' : '<button class="dchip ok'+(d===curDest?' sel':'')+'" data-destpick="'+esc(d)+'" data-sig="'+sig+'" data-i="'+s._i+'">'+esc(d)+'行き</button>').join('');
           const midNames=[]; const stp=bI<aI?1:-1; for(let k=bI+stp;k!==aI;k+=stp) midNames.push(allN[k]);
           const midTxt=midNames.length? midNames.slice(0,4).join('・')+(midNames.length>4?' など':'') : '';
           return '<div style="margin-top:10px"><b style="color:var(--good)">乗っていい行き先（タップで再計算）</b></div>'
           +'<div class="dchips">'+okChips+'</div>'
           +'<div class="muted">行き先が「'+esc(alight)+'」か、それより先の駅なら乗れます。タップすると、その行き先に乗れる最速の種別で時刻を再計算します</div>'
+          +(thDests.length? '<div class="muted">「'+esc(dir.terminal)+'」から先の直通先（'+thDests.map(esc).join('・')+'）行きも、'+esc(alight)+'を通るので乗れます</div>':'')
           +'<div style="margin-top:8px"><b style="color:var(--ng)">乗ったらダメ</b></div>'
           +'<div class="dchips"><span class="dchip ng">'+esc(oppTerm)+'行き（逆方向）</span></div>'
           +(midTxt? '<div class="muted">行き先が「'+esc(alight)+'」より手前（'+esc(midTxt)+'）止まりの電車もダメです</div>':''); })()
