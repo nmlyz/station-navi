@@ -226,8 +226,8 @@ function viewHome(){
     const depFor=(r)=>{ const [h,m]=c.arriveBy.split(':').map(Number); const d=new Date(); d.setHours(h,m,0,0); return fmtTime(new Date(d.getTime()-routeTotalMinutes(r)*60000)); };
     let sug='経路データ未取得';
     if(c.arriveBy&&(rFam||rFast)){ const parts=[];
-      if(rFam) parts.push('いつもの路線の出発目安 '+depFor(rFam)+'（所要 '+rFam.minutes+'分・乗換'+rFam.transfers+'回）');
-      if(rFast&&(!rFam||rFast.minutes!==rFam.minutes)) parts.push('最速なら出発目安 '+depFor(rFast)+'（所要 '+rFast.minutes+'分・乗換'+rFast.transfers+'回）');
+      if(rFam) parts.push('いつもの路線の出発目安 '+depFor(rFam)+'（所要 '+routeTotalMinutes(rFam)+'分・乗換'+rFam.transfers+'回）');
+      if(rFast&&(!rFam||routeTotalMinutes(rFast)!==routeTotalMinutes(rFam))) parts.push('最速なら出発目安 '+depFor(rFast)+'（所要 '+routeTotalMinutes(rFast)+'分・乗換'+rFast.transfers+'回）');
       sug='到着希望 '+c.arriveBy+' → '+parts.join(' ／ '); }
     return `<div class="kv"><span><b>${esc(c.name)}</b><br><span class="muted">${esc(c.from)} → ${esc(c.to)}（${esc((c.days||[]).join('・')||'毎日')}）</span><br><span class="muted">${esc(sug)}</span></span><button class="sub" data-go="${esc(c.from)}|${esc(c.to)}"${c.arriveBy?` data-arrive="${esc(c.arriveBy)}"`:''}>検索</button></div>`;}).join(''):'<p class="muted">通勤・通学経路は未登録です。設定タブから登録できます。</p>'}
   </div>
