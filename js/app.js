@@ -66,9 +66,9 @@ function bindSearchCard(){
       nb.innerHTML='<h3>最寄り駅（位置情報は保存・送信しません）</h3>'+near.map(n=>`<button class="sub" style="width:100%;margin-bottom:6px" data-near="${esc(n.name)}">${esc(n.name)}（約${n.km}km）</button>`).join('');
       nb.querySelectorAll('[data-near]').forEach(b=>b.onclick=()=>{ searchState.from=b.dataset.near; render(); const fi=$('#fromInput'); if(fi){fi.dataset.picked=b.dataset.near;} });
     }catch(e){ nb.innerHTML='<p class="muted">位置情報を取得できませんでした。通常の駅検索をご利用ください。</p>'; } };
-  const ds=$('#doSearch'); if(ds) ds.onclick=doSearch;
+  const ds=$('#doSearch'); if(ds) ds.onclick=()=>{ FAVONLY=false; doSearch(); };
 }
-let LAST=null, SORTMODE='rec';
+let LAST=null, SORTMODE='rec', FAVONLY=false;
 const TYPE_FACTOR={'特急':0.8,'京王ライナー':0.8,'通勤特快':0.82,'快速急行':0.82,'通勤特急':0.82,'中央特快':0.85,'青梅特快':0.85,'新快速':0.85,'急行':0.88,'快速':0.9,'通勤快速':0.9,'通勤急行':0.9,'区間急行':0.93,'準急':0.95,'通勤準急':0.95,'区間準急':0.97,'普通':1.1,'各駅停車':1.15};
 const OPEN_VIA=new Set();
 function segMinutes(s){ let m=0; for(let i=1;i<s.stations.length;i++){ const st=s.line.stations.find(x=>x.name===s.stations[i]); m+=(st?st.min:2)||2; } return Math.max(1,Math.round(m*(s._factor||1))); }
@@ -163,7 +163,8 @@ function renderRoutes(reorder){
   if(reorder!==false){ if(SORTMODE==='fast') routes.sort((a,b)=>computeTimes(a).total-computeTimes(b).total);
   if(SORTMODE==='cheap') routes.sort((a,b)=>(a.fare??1e9)-(b.fare??1e9));
   if(SORTMODE==='few') routes.sort((a,b)=>a.transfers-b.transfers||computeTimes(a).total-computeTimes(b).total); LAST.order=routes.slice(); }
-  box.innerHTML='<label>並び替え</label><select id="sortSel"><option value="rec" '+(SORTMODE==='rec'?'selected':'')+'>おすすめ順</option><option value="fast" '+(SORTMODE==='fast'?'selected':'')+'>速さ順</option><option value="cheap" '+(SORTMODE==='cheap'?'selected':'')+'>値段順（安い順）</option><option value="few" '+(SORTMODE==='few'?'selected':'')+'>乗換が少ない順</option></select>'
+  if(FAVONLY) routes=routes.slice(0,1);
+  box.innerHTML=(FAVONLY?'<div class="favbanner"><svg class="ic" style="width:18px;height:18px;vertical-align:-3px"><use href="#i-star"/></svg> お気に入りのルート（この1件だけ表示しています）</div>':'<label>並び替え</label><select id="sortSel"><option value="rec" '+(SORTMODE==='rec'?'selected':'')+'>おすすめ順</option><option value="fast" '+(SORTMODE==='fast'?'selected':'')+'>速さ順</option><option value="cheap" '+(SORTMODE==='cheap'?'selected':'')+'>値段順（安い順）</option><option value="few" '+(SORTMODE==='few'?'selected':'')+'>乗換が少ない順</option></select>')
    + routes.map(r=>{
     r._ds=displaySegments(r); const CT=computeTimes(r); const deps=CT.deps, arrs=CT.arrs; r._total=CT.total;
     const segsHtml=CT.ds.map((s,si)=>{
@@ -213,9 +214,9 @@ function renderRoutes(reorder){
     +'<div class="muted">'+esc(r.label)+'｜乗換 '+r.transfers+'回｜運賃: '+(r.fare!=null?'¥'+r.fare:'情報未取得')+'｜時刻表: 情報未取得（発着は目安）</div>'
     +'<div class="muted">各区間の発時刻は変更できます。変更すると後ろの時刻が自動で再計算されます。</div>'
     + segsHtml
-    +'<div class="row" style="margin-top:10px"><button class="sub" data-favroute="'+esc(LAST.from)+'|'+esc(LAST.to)+'"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-star"/></svg> お気に入りに保存</button></div></div>';
+    +(FAVONLY?'':'<div class="row" style="margin-top:10px"><button class="sub" data-favroute="'+esc(LAST.from)+'|'+esc(LAST.to)+'"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-star"/></svg> お気に入りに保存</button></div>')+'</div>';
   }).join('');
-  $('#sortSel').onchange=e=>{ SORTMODE=e.target.value; renderRoutes(); };
+  const ss=$('#sortSel'); if(ss) ss.onchange=e=>{ SORTMODE=e.target.value; renderRoutes(); };
   box.querySelectorAll('.seg-dep').forEach(inp=>inp.onchange=()=>{
     const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===inp.dataset.sig); if(!r) return;
     r.depOverrides[+inp.dataset.seg]=inp.value; renderRoutes(false); toast('時刻を再計算しました'); });
@@ -239,12 +240,12 @@ function viewHome(){
     let rFam=null; if(fam.size&&GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)){ const rr=findRoutes(GRAPH,c.from,c.to,8,fam); if(rr&&rr.segments.every(s=>s.lineId.startsWith('walk-')||fam.has(s.lineId))) rFam=rr; }
     const rFast=GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)?findRoutes(GRAPH,c.from,c.to,5):null;
     const depFor=(r)=>{ const [h,m]=c.arriveBy.split(':').map(Number); const d=new Date(); d.setHours(h,m,0,0); return fmtTime(new Date(d.getTime()-routeTotalMinutes(r)*60000)); };
-    let sug='経路データ未取得';
-    if(c.arriveBy&&(rFam||rFast)){ const parts=[];
-      if(rFam) parts.push('いつもの路線の出発目安 '+depFor(rFam)+'（所要 '+routeTotalMinutes(rFam)+'分・乗換'+rFam.transfers+'回）');
-      if(rFast&&(!rFam||routeTotalMinutes(rFast)!==routeTotalMinutes(rFam))) parts.push('最速なら出発目安 '+depFor(rFast)+'（所要 '+routeTotalMinutes(rFast)+'分・乗換'+rFast.transfers+'回）');
-      sug='到着希望 '+c.arriveBy+' → '+parts.join(' ／ '); }
-    return `<div class="kv"><span><b>${esc(c.name)}</b><br><span class="muted">${esc(c.from)} → ${esc(c.to)}（${esc((c.days||[]).join('・')||'毎日')}）</span><br><span class="muted">${esc(sug)}</span></span><button class="sub" data-go="${esc(c.from)}|${esc(c.to)}"${c.arriveBy?` data-arrive="${esc(c.arriveBy)}"`:''}>検索</button></div>`;}).join(''):'<p class="muted">通勤・通学経路は未登録です。設定タブから登録できます。</p>'}
+    let sugHtml='<span class="muted">経路データ未取得</span>';
+    if(c.arriveBy&&(rFam||rFast)){ const lines=[`<span class="sug-line">到着希望 <b>${esc(c.arriveBy)}</b></span>`];
+      if(rFam) lines.push(`<span class="sug-line">いつもの路線 <b class="dep-time">${depFor(rFam)} 発</b>（所要 ${routeTotalMinutes(rFam)}分・乗換${rFam.transfers}回）</span>`);
+      if(rFast&&(!rFam||routeTotalMinutes(rFast)!==routeTotalMinutes(rFam))) lines.push(`<span class="sug-line">最速 <b class="dep-time">${depFor(rFast)} 発</b>（所要 ${routeTotalMinutes(rFast)}分・乗換${rFast.transfers}回）</span>`);
+      sugHtml=lines.join(''); }
+    return `<div class="kv"><span><b>${esc(c.name)}</b><br><span class="rt-line">${esc(c.from)} → ${esc(c.to)}</span> <span class="muted">（${esc((c.days||[]).join('・')||'毎日')}）</span><br>${sugHtml}</span><button class="sub" data-go="${esc(c.from)}|${esc(c.to)}"${c.arriveBy?` data-arrive="${esc(c.arriveBy)}"`:''}>検索</button></div>`;}).join(''):'<p class="muted">通勤・通学経路は未登録です。設定タブから登録できます。</p>'}
   </div>
   ${searchCard(true)}
   <div class="card"><h2>運行情報</h2><p class="muted">リアルタイム運行情報: 情報未取得。公共交通オープンデータセンター（ODPT）等は利用登録・APIキーが必要なため、本アプリにはキーを埋め込んでいません。遅延・運休などの最新情報は各事業者の公式発表でご確認ください。保存済みデータを最新情報のように表示することはありません。</p></div>
@@ -260,7 +261,7 @@ function viewSearch(){ $('#view').innerHTML=searchCard(true); bindSearchCard();
 function viewFavs(){
   const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
   $('#view').innerHTML=`<div class="card"><h2>お気に入りルート</h2>${favs.length?favs.map((f,i)=>`<div class="kv"><span>${esc(f.from)} → ${esc(f.to)}</span><span><button class="sub" data-go="${esc(f.from)}|${esc(f.to)}">検索</button> <button class="sub" data-del="${i}">削除</button></span></div>`).join(''):'<p class="muted">お気に入りはまだありません。検索結果から保存できます。</p>'}</div>`;
-  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ const [f,t]=b.dataset.go.split('|'); searchState.from=f; searchState.to=t; nav('search'); setTimeout(doSearch,0); });
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ const [f,t]=b.dataset.go.split('|'); searchState.from=f; searchState.to=t; FAVONLY=true; searchState.mode='dep'; searchState.time=fmtTime(new Date()); nav('search'); setTimeout(doSearch,0); });
   document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ const a=JSON.parse(localStorage.getItem('sn-favs')||'[]'); a.splice(+b.dataset.del,1); localStorage.setItem('sn-favs',JSON.stringify(a)); render(); });
 }
 async function viewDownloads(){
