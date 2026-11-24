@@ -4,7 +4,7 @@ body.dark{--bg:#0b1118;--card:#151e29;--text:#edf3f9;--muted:#93a7bb;--border:#2
 body.light{--bg:#eef2f7;--card:#ffffff;--text:#16222e;--muted:#68798c;--border:#dde5ee;--input:#f4f7fb;--shadow:0 6px 24px rgba(18,38,63,.08)}
 *{box-sizing:border-box}
 html,body{touch-action:manipulation;height:100%}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;position:fixed;top:0;left:0;right:0;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
 .ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
 .topbar{position:relative;flex:0 0 auto;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 .brand{font-weight:800;font-size:19px;display:flex;align-items:center;gap:9px;letter-spacing:.2px}
@@ -34,7 +34,7 @@ button:active{opacity:.78}
 .tabbar button .ic{width:23px;height:23px}
 .tabbar button span{font-size:11px;font-weight:600}
 .tabbar button.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
-body.inbrowser .tabbar{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+body.inbrowser .tabbar{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
 .hidden{display:none!important}
 .offline-bar{background:#fff3df;color:#8a5a00;padding:10px 16px;font-size:13px;text-align:center}
 .timeline{position:relative;margin:10px 0 0 6px;padding-left:24px;border-left:3px solid var(--lc,#999)}

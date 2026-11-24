@@ -239,12 +239,18 @@ function askFavName(title, initial, onOk){
 function wireCommuteToggle(chkId,statusId){ const t=document.getElementById(chkId); if(!t) return; const st=document.getElementById(statusId);
   const paint=()=>{ if(st) st.textContent=CommuteMode.enabled()?'現在ONです（アプリを開いている間、駅に近づくと何行きか表示します）':'現在OFFです'; };
   t.checked=CommuteMode.enabled(); paint();
-  t.onchange=()=>{ CommuteMode.setEnabled(t.checked); if(t.checked&&!Commute.list().length) toast('先に設定タブで通勤経路を登録してください'); paint(); if(t.checked) CommuteMode.tick(); }; }
+  t.onchange=()=>{ CommuteMode.setEnabled(t.checked); if(t.checked&&CommuteNotify.supported()&&CommuteNotify.permission()==='default') CommuteNotify.request(); if(t.checked&&!Commute.list().length) toast('先に設定タブで通勤経路を登録してください'); paint(); if(t.checked) CommuteMode.tick(); }; }
+function notifyRowHTML(){ if(!CommuteNotify.supported()) return `<div class="kv"><span>駅に近づいたら通知</span><span class="muted">この環境では未対応（ホーム画面に追加したアプリ版で使えます）</span></div>`;
+  const p=CommuteNotify.permission();
+  if(p==='granted') return `<div class="kv"><span>駅に近づいたら通知</span><span class="muted">許可済み</span></div>`;
+  if(p==='denied') return `<div class="kv"><span>駅に近づいたら通知</span><span class="muted">ブロック中（端末の設定で許可してください）</span></div>`;
+  return `<div class="kv"><span>駅に近づいたら通知</span><button class="sub notify-allow" style="width:auto">通知を許可する</button></div>`; }
+function wireNotifyRow(){ document.querySelectorAll('.notify-allow').forEach(b=>b.onclick=async()=>{ await CommuteNotify.request(); render(); }); }
 function viewHome(){
   const setup=Settings.setup()||{}; const commutes=Commute.list();
   const hist=JSON.parse(localStorage.getItem('sn-history')||'[]');
   $('#view').innerHTML=`
-  <div class="card"><div class="switch" style="border-bottom:0;padding:2px 0"><span><b style="font-size:16px">通勤モード</b><br><span class="muted" id="cmStatusHome">現在OFFです</span></span><input type="checkbox" id="cmToggleHome"></div></div>
+  <div class="card"><div class="switch" style="border-bottom:0;padding:2px 0"><span><b style="font-size:16px">通勤モード</b><br><span class="muted" id="cmStatusHome">現在OFFです</span></span><input type="checkbox" id="cmToggleHome"></div>${notifyRowHTML()}</div>
   <div class="card"><h2>${esc(setup.pref||'地域未設定')} の通勤・通学</h2>
   ${commutes.length?commutes.map(c=>{ const fam=matchFamiliarLines(GRAPH,setup.line||'');
     let rFam=null; if(fam.size&&GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)){ const rr=findRoutes(GRAPH,c.from,c.to,8,fam); if(rr&&rr.segments.every(s=>s.lineId.startsWith('walk-')||fam.has(s.lineId))) rFam=rr; }
@@ -260,7 +266,7 @@ function viewHome(){
   ${searchCard(true)}
   <div class="card"><h2>運行情報</h2><p class="muted">リアルタイム運行情報: 情報未取得。公共交通オープンデータセンター（ODPT）等は利用登録・APIキーが必要なため、本アプリにはキーを埋め込んでいません。遅延・運休などの最新情報は各事業者の公式発表でご確認ください。保存済みデータを最新情報のように表示することはありません。</p></div>
   ${hist.length?`<div class="card"><h2>最近の検索</h2>${hist.map(h=>`<div class="kv"><span>${esc(h.from)} → ${esc(h.to)}</span><button class="sub" data-go="${esc(h.from)}|${esc(h.to)}">検索</button></div>`).join('')}</div>`:''}`;
-  bindSearchCard(); wireCommuteToggle('cmToggleHome','cmStatusHome');
+  bindSearchCard(); wireCommuteToggle('cmToggleHome','cmStatusHome'); wireNotifyRow();
   const ti=$('#timeInput'); if(ti) ti.onchange=()=>{ const el=$('#time24'); if(el) el.textContent='入力中の時刻（24時間表示）: '+(ti.value||''); };
   document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ const [f,t]=b.dataset.go.split('|'); searchState.from=f; searchState.to=t;
     if(b.dataset.arrive){ searchState.mode='arr'; searchState.time=b.dataset.arrive; } else { searchState.mode='dep'; searchState.time=fmtTime(new Date()); }
@@ -342,14 +348,14 @@ function viewSettings(){
   </div>
   <div class="card"><h2>通勤モード（GPS連動ポップアップ）</h2>
   <div class="switch"><span>通勤モードをONにする</span><input type="checkbox" id="cmToggle"></div>
-  <p class="muted" id="cmStatus">現在OFFです</p>
-  <p class="muted">ONにすると、アプリを開いている間に1分ごとに現在地を確認し、登録した通勤経路の駅（午前は自宅側、午後は職場・学校側）から約450m以内に入ると「何行きに乗ればいいか」をポップアップで表示します。駅から離れるまで表示し続けます。位置情報は端末内でのみ使い、外部送信しません。</p></div>`;
+  <p class="muted" id="cmStatus">現在OFFです</p>${notifyRowHTML()}
+  <p class="muted">ONにすると、アプリを開いている間に現在地を継続的に確認し、登録した通勤経路の駅（午前は自宅側、午後は職場・学校側）から約450m以内に入ると「何行きに乗ればいいか」をポップアップで表示します（通知を許可していれば通知でも届きます）。駅から離れるまで表示し続けます。位置情報は端末内でのみ使い、外部送信しません。</p></div>`;
   $('#editSetup').onclick=()=>showSetup(true);
   const save=()=>{ const ns={...Settings.load(),autoUpdate:$('#swAuto').checked,wifiOnly:$('#swWifi').checked,mobileUpdate:$('#swMobile').checked,dark:$('#selDark').value}; Settings.save(ns); applyTheme(); toast('設定を保存しました'); };
   ['swAuto','swWifi','swMobile','selDark'].forEach(id=>$('#'+id).onchange=save);
   $('#resetAll').onclick=async()=>{ Settings.clearAll(); const packs=await DB.allPacks(); for(const p of packs) await DB.delPack(p.id); await reloadGraph(); toast('初期化しました'); showSetup(false); render(); };
   bindSuggest('cFrom',null); bindSuggest('cTo',null);
-  wireCommuteToggle('cmToggle','cmStatus');
+  wireCommuteToggle('cmToggle','cmStatus'); wireNotifyRow();
   document.querySelectorAll('#cDays .daychip').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   $('#cAdd').onclick=()=>{ const name=$('#cName').value.trim(); if($('#cFrom').dataset.picked!==$('#cFrom').value.trim()||$('#cTo').dataset.picked!==$('#cTo').value.trim()){ toast('駅は候補をタップして選んでください'); return; } const fromR=resolveStation(GRAPH,$('#cFrom').value.trim()),toR=resolveStation(GRAPH,$('#cTo').value.trim());
     if(!name||!fromR||!toR){ toast('名前と、候補にある駅を選んでください'); return; } const from=fromR,to=toR;
