@@ -68,7 +68,8 @@ function bindSearchCard(){
   const ds=$('#doSearch'); if(ds) ds.onclick=doSearch;
 }
 let LAST=null, SORTMODE='rec';
-const TYPE_FACTOR={'特急':0.8,'快速急行':0.82,'急行':0.88,'快速':0.9,'通勤急行':0.9,'準急':0.95,'通勤準急':0.95,'区間準急':0.97,'普通':1.1,'各駅停車':1.15};
+const TYPE_FACTOR={'特急':0.8,'京王ライナー':0.8,'通勤特快':0.82,'快速急行':0.82,'通勤特急':0.82,'中央特快':0.85,'青梅特快':0.85,'新快速':0.85,'急行':0.88,'快速':0.9,'通勤快速':0.9,'通勤急行':0.9,'区間急行':0.93,'準急':0.95,'通勤準急':0.95,'区間準急':0.97,'普通':1.1,'各駅停車':1.15};
+const OPEN_VIA=new Set();
 function segMinutes(s){ let m=0; for(let i=1;i<s.stations.length;i++){ const st=s.line.stations.find(x=>x.name===s.stations[i]); m+=(st?st.min:2)||2; } return Math.max(1,Math.round(m*(s._factor||1))); }
 function displaySegments(r){
   const out=[];
@@ -182,7 +183,15 @@ function renderRoutes(reorder){
         +'<div class="muted" style="margin-top:6px">この区間に停車する種別: '+(types.length?types.map(esc).join(' / '):'情報未取得')+'｜ホーム番号: 情報未取得</div>'
         +'<div class="muted">種別や行き先を間違えて乗ったときは、上の種別・行き先を変更すると時刻とルートが組み直されます。</div>'
         +'</div>'
-        +'<div class="stop"><b>'+esc(alight)+'駅</b> <span class="muted">'+fmtTime(arrs[si])+'着</span>'+(si<CT.ds.length-1?'<div class="muted">ここで乗り換え（乗換目安 5分）</div>':'<div class="good">目的地に到着</div>')+'</div></div>';
+        +'<div class="stop"><b>'+esc(alight)+'駅</b> <span class="muted">'+fmtTime(arrs[si])+'着</span>'+(si<CT.ds.length-1?'<div class="muted">ここで乗り換え（乗換目安 5分）</div>':'<div class="good">目的地に到着</div>')+'</div></div>'
+        +(()=>{ const key=sig+'|'+si; const open=OPEN_VIA.has(key);
+          const typeObj=s.line.types.find(t=>t.name===curType);
+          let cum=0; const rows=s.stations.map((nm,k)=>{ if(k>0){ const st=s.line.stations.find(x=>x.name===nm); cum+=((st?st.min:2)||2)*(s._factor||1); }
+            const isStop=!typeObj||typeObj.stops==='all'||typeObj.stops.includes(nm);
+            const tag=k===0?'乗車':(k===s.stations.length-1?'降車':(isStop?'停車':'通過'));
+            return '<div class="kv"><span>'+(k===0||k===s.stations.length-1?'<b>':'')+esc(nm)+'駅'+(k===0||k===s.stations.length-1?'</b>':'')+'</span><span class="muted">'+tag+(k>0?' ・ +'+Math.round(cum)+'分':'')+'</span></div>'; }).join('');
+          return '<button class="sub via-btn" data-via="'+key+'" style="width:100%;margin-top:6px">駅間（経由駅一覧）'+(open?' ▲':' ▼')+'</button>'
+            +'<div class="via-list" '+(open?'':'hidden')+' style="margin-top:6px">'+rows+'</div>'; })();
     }).join('');
     return '<div class="card" style="margin-top:12px"><div class="result-head"><span class="big">'+r._total+'分</span><span>'+fmtTime(computeTimes(r).deps[0])+' → '+fmtTime(computeTimes(r).arrs[computeTimes(r).arrs.length-1])+'</span></div>'
     +'<div class="muted">'+esc(r.label)+'｜乗換 '+r.transfers+'回｜運賃: '+(r.fare!=null?'¥'+r.fare:'情報未取得')+'｜時刻表: 情報未取得（発着は目安）</div>'
@@ -196,6 +205,7 @@ function renderRoutes(reorder){
     r.depOverrides[+inp.dataset.seg]=inp.value; renderRoutes(false); toast('時刻を再計算しました'); });
   box.querySelectorAll('.seg-type').forEach(sel=>sel.onchange=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===sel.dataset.sig); if(!r)return; r.typeSel[+sel.dataset.i]=sel.value; r._ds=null; renderRoutes(false); toast('種別を変更して再計算しました'); });
   box.querySelectorAll('.seg-dest').forEach(sel=>sel.onchange=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===sel.dataset.sig); if(!r)return; r.destSel[+sel.dataset.i]=sel.value; r._ds=null; renderRoutes(false); toast('行き先を変更して組み直しました'); });
+  box.querySelectorAll('.via-btn').forEach(b=>b.onclick=()=>{ const k=b.dataset.via; if(OPEN_VIA.has(k)) OPEN_VIA.delete(k); else OPEN_VIA.add(k); renderRoutes(false); });
   box.querySelectorAll('[data-favroute]').forEach(b=>b.onclick=()=>{ const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
     favs.unshift({from:LAST.from,to:LAST.to}); localStorage.setItem('sn-favs',JSON.stringify(favs.slice(0,20))); toast('お気に入りに保存しました'); });
 }
