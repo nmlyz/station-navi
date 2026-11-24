@@ -77,7 +77,7 @@ function displaySegments(r){
   for(let i=0;i<r.segments.length;i++){ const s=r.segments[i];
     if(s.lineId.startsWith('walk-')){ out.push({...s,_i:i,_factor:1}); continue; }
     const types=usableTypes(s.line,s.stations[0],s.stations[s.stations.length-1]);
-    const type=(r.typeSel&&r.typeSel[i])||types[0]||'';
+    const type=(r.typeSel&&r.typeSel[i])||types.slice().sort((a,b)=>(TYPE_FACTOR[a]!=null?TYPE_FACTOR[a]:1)-(TYPE_FACTOR[b]!=null?TYPE_FACTOR[b]:1))[0]||'';
     const dir=directionOf(s.line,s.stations[0],s.stations[s.stations.length-1]);
     const dest=(r.destSel&&r.destSel[i])||dir.terminal;
     const allNames=s.line.stations.map(x=>x.name); const bIdx=allNames.indexOf(s.stations[0]), tIdx=allNames.indexOf(dir.terminal);
@@ -193,6 +193,7 @@ function renderRoutes(reorder){
         +(s._trunc?'<div style="margin-top:6px;padding:8px;border:2px solid #d43a2f;border-radius:8px"><b>⚠ その電車は'+esc(alight)+'止まりです</b><br>'+esc(alight)+'で降りて、下のルートに乗り換えてください（自動で組み直しました）</div>':'')
         +(s._extra?'<div class="muted" style="margin-top:4px">（乗り間違え対応で組み直した区間）</div>':'')
         +'<div class="dep-line"><span>発車目安 <b>'+fmtTime(deps[si])+'</b> 発</span>'+(platNum?'<span class="plat">'+esc(platNum)+'番ホーム</span>':'<span class="muted">ホーム番号: 情報未取得</span>')+'</div>'
+        +'<div class="muted" style="font-size:12px;margin-top:2px">種別・発車時刻は目安です（時刻表データ取得中）</div>'
         +'<ul class="okng">'
         +'<li class="ok"><svg class="ic"><use href="#i-check"/></svg><span><b>乗っていい</b>: '+esc(dir.terminal)+'行き（この方面の電車）<br><span class="muted">行き先が途中の駅止まりの電車も、降りる駅を通るなら乗れます</span></span></li>'
         +'<li class="ng"><svg class="ic"><use href="#i-ban"/></svg><span><b>乗ったらダメ</b>: '+esc(oppTerm)+'行き（逆方向）</span></li>'
