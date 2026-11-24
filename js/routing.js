@@ -73,17 +73,12 @@ function directionOf(line,board,alight){
   return {terminal:term,dests};
 }
 
-// ---- Fare engine: operator fare brackets (IC, yen) x segment distance ----
-// Distance per segment is estimated from the line's total km distributed by travel minutes.
-// Fares are therefore estimates (目安), shown as such in the UI.
+// ---- Fare engine: fares are looked up from operator fare tables transcribed
+// from the operators' published fare charts. Operators without a transcribed
+// table return null and the UI shows 情報未取得.
 const FARE_TABLES={
- 'JR東日本':[[3,150],[6,170],[10,200],[15,240],[20,270],[25,310],[30,340],[35,380],[40,420],[45,460],[50,510],[60,580],[70,660],[80,740],[90,820],[100,900],[999,990]],
- 'JR西日本':[[3,150],[6,190],[10,210],[15,260],[20,300],[25,340],[30,390],[35,450],[40,510],[45,580],[50,650],[60,740],[70,830],[80,920],[90,1010],[100,1100],[999,1200]],
- '東京メトロ':[[6,180],[11,210],[19,260],[27,300],[34,330],[40,340],[999,370]],
- '大阪メトロ':[[3,190],[7,240],[13,290],[19,340],[999,390]],
- '小田急電鉄':[[3,130],[6,160],[9,190],[13,220],[17,260],[21,300],[25,340],[29,380],[33,420],[37,470],[41,520],[46,570],[51,620],[56,680],[61,730],[66,780],[71,830],[76,880],[81,920],[86,960],[999,1000]],
- '東急電鉄':[[3,140],[5,160],[7,180],[9,200],[11,220],[13,240],[15,260],[17,280],[19,300],[22,320],[25,340],[999,370]],
- '京王電鉄':[[3,140],[6,160],[9,190],[12,210],[16,240],[20,270],[24,300],[28,330],[32,360],[37,390],[42,430],[47,470],[52,510],[999,560]],
+ // 運賃表は各事業者の公式運賃表から転記したものだけを入れる。
+ // 未転記の事業者は運賃を表示しない（情報未取得）。
 };
 function segDistanceKm(line,board,alight){
   const i=line.stations.findIndex(s=>s.name===board), j=line.stations.findIndex(s=>s.name===alight);

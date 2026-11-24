@@ -185,7 +185,7 @@ function renderRoutes(reorder){
         +'<div class="stop"><b>'+esc(alight)+'駅</b> <span class="muted">'+fmtTime(arrs[si])+'着</span>'+(si<CT.ds.length-1?'<div class="muted">ここで乗り換え（乗換目安 5分）</div>':'<div class="good">目的地に到着</div>')+'</div></div>';
     }).join('');
     return '<div class="card" style="margin-top:12px"><div class="result-head"><span class="big">'+r._total+'分</span><span>'+fmtTime(computeTimes(r).deps[0])+' → '+fmtTime(computeTimes(r).arrs[computeTimes(r).arrs.length-1])+'</span></div>'
-    +'<div class="muted">'+esc(r.label)+'｜乗換 '+r.transfers+'回｜運賃目安: '+(r.fare!=null?'¥'+r.fare:'情報未取得')+'（IC運賃ベースの概算）｜時刻表: 情報未取得（発着は目安）</div>'
+    +'<div class="muted">'+esc(r.label)+'｜乗換 '+r.transfers+'回｜運賃: '+(r.fare!=null?'¥'+r.fare:'情報未取得')+'｜時刻表: 情報未取得（発着は目安）</div>'
     +'<div class="muted">各区間の発時刻は変更できます。変更すると後ろの時刻が自動で再計算されます。</div>'
     + segsHtml
     +'<div class="row" style="margin-top:10px"><button class="sub" data-favroute="'+esc(LAST.from)+'|'+esc(LAST.to)+'">⭐ お気に入りに保存</button></div></div>';
@@ -284,7 +284,11 @@ function viewSettings(){
   <label>利用する曜日（カンマ区切り）</label><input id="cDays" placeholder="月,火,水,木,金">
   <div style="height:10px"></div><button id="cAdd" style="width:100%">登録する</button>
   ${commutes.map(c=>`<div class="kv"><span><b>${esc(c.name)}</b><br><span class="muted">${esc(c.from)} → ${esc(c.to)} / 到着希望 ${esc(c.arriveBy||'未設定')}</span></span><button class="sub" data-cdel="${c.id}">削除</button></div>`).join('')}
-  </div>`;
+  </div>
+  <div class="card"><h2>通勤モード（GPS連動ポップアップ）</h2>
+  <div class="switch"><span>通勤モードをONにする</span><input type="checkbox" id="cmToggle"></div>
+  <p class="muted" id="cmStatus">現在OFFです</p>
+  <p class="muted">ONにすると、アプリを開いている間に1分ごとに現在地を確認し、登録した通勤経路の駅（午前は自宅側、午後は職場・学校側）から約450m以内に入ると「何行きに乗ればいいか」をポップアップで表示します。駅から離れるまで表示し続けます。位置情報は端末内でのみ使い、外部送信しません。</p></div>`;
   $('#editSetup').onclick=()=>showSetup(true);
   const save=()=>{ const ns={...Settings.load(),autoUpdate:$('#swAuto').checked,wifiOnly:$('#swWifi').checked,mobileUpdate:$('#swMobile').checked,dark:$('#selDark').value}; Settings.save(ns); applyTheme(); toast('設定を保存しました'); };
   ['swAuto','swWifi','swMobile','selDark'].forEach(id=>$('#'+id).onchange=save);
