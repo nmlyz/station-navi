@@ -445,6 +445,9 @@ function showSetup(force){
   render();
   if(!Settings.setup()) showSetup(false);
   const s=Settings.load();
-  if(s.autoUpdate && navigator.onLine){ Updater.checkAndUpdate().then(async()=>{ await reloadGraph(); }); }
-  setInterval(async()=>{ const st=Settings.load(); if(st.autoUpdate&&navigator.onLine){ await Updater.checkAndUpdate(); await reloadGraph(); } },6*60*60*1000);
+  const applyUpdate=async(r)=>{ if(r&&r.updated){ await reloadGraph(); if(TAB==='search'&&LAST){ doSearch(); } else if(TAB!=='downloads'){ render(); } toast('駅データを最新に更新しました'); } };
+  if(s.autoUpdate && navigator.onLine){ Updater.checkAndUpdate().then(applyUpdate); }
+  setInterval(async()=>{ const st=Settings.load(); if(st.autoUpdate&&navigator.onLine){ applyUpdate(await Updater.checkAndUpdate()); } },6*60*60*1000);
+  let lastFgCheck=Date.now();
+  document.addEventListener('visibilitychange',async()=>{ if(document.visibilityState!=='visible') return; const st=Settings.load(); if(!st.autoUpdate||!navigator.onLine) return; if(Date.now()-lastFgCheck<5*60*1000) return; lastFgCheck=Date.now(); applyUpdate(await Updater.checkAndUpdate()); });
 })();
