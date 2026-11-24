@@ -47,7 +47,7 @@ function searchCard(prefill){
   const now=new Date(); if(!searchState.time) searchState.time=fmtTime(now);
   return `<div class="card"><h2>乗換検索</h2>
   ${stationInput('fromInput','出発駅',searchState.from)}
-  <div class="row" style="margin-top:8px"><button class="sub swap" id="swapBtn" title="入れ替え">⇅ 入れ替え</button><button class="sub" id="gpsBtn">📍 現在地から検索</button></div>
+  <div class="row" style="margin-top:8px"><button class="sub swap" id="swapBtn" title="入れ替え"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-swap"/></svg> 入れ替え</button><button class="sub" id="gpsBtn"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-pin"/></svg> 現在地から検索</button></div>
   <div id="nearby"></div>
   ${stationInput('toInput','到着駅',searchState.to)}
   <label>時刻の指定（24時間表示）</label><div class="row"><select id="timeMode"><option value="dep" ${searchState.mode==='dep'?'selected':''}>出発時刻</option><option value="arr" ${searchState.mode==='arr'?'selected':''}>到着希望時刻</option></select><input type="time" id="timeInput" value="${esc(searchState.time)}"></div>
@@ -178,17 +178,27 @@ function renderRoutes(reorder){
       const types=s._extra?usableTypes(s.line,board,alight):(s._types||[]);
       const curType=s._extra?(types[0]||''):s._type;
       const curDest=s._extra?dir.terminal:s._dest;
-      const typeCtl=s._extra?'<b>'+esc(curType)+'</b>':'<select class="seg-type" data-sig="'+sig+'" data-i="'+s._i+'" style="font-size:19px;font-weight:700;width:auto;display:inline-block">'+types.map(t=>'<option '+(t===curType?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select>';
-      const destCtl=s._extra?'<b>'+esc(curDest)+'行き</b>':'<select class="seg-dest" data-sig="'+sig+'" data-i="'+s._i+'" style="font-size:19px;font-weight:700;width:auto;display:inline-block">'+(s._dests||[]).map(d=>'<option '+(d===curDest?'selected':'')+'>'+esc(d)+'</option>').join('')+'</select> 行き';
+      const typeCtl=s._extra?'<b>'+esc(curType)+'</b>':'<select class="seg-type" data-sig="'+sig+'" data-i="'+s._i+'">'+types.map(t=>'<option '+(t===curType?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select>';
+      const destCtl=s._extra?'<b>'+esc(curDest)+'行き</b>':'<select class="seg-dest" data-sig="'+sig+'" data-i="'+s._i+'">'+(s._dests||[]).map(d=>'<option '+(d===curDest?'selected':'')+'>'+esc(d)+'</option>').join('')+'</select> 行き';
+      const allN=s.line.stations.map(x=>x.name); const bI=allN.indexOf(board), aI=allN.indexOf(alight);
+      const oppTerm=bI<aI?allN[0]:allN[allN.length-1];
+      const platMap=s.line.platforms&&s.line.platforms[board];
+      const platNum=platMap?platMap[bI<aI?'toLast':'toFirst']:null;
       return '<div class="timeline" style="--lc:'+s.line.color+'">'
         +'<div class="stop"><div class="big">'+esc(board)+'駅 <input type="time" class="seg-dep" data-sig="'+sig+'" data-seg="'+si+'" value="'+fmtTime(deps[si])+'" style="width:118px;display:inline-block;font-size:15px;padding:6px">発</div>'
         +'<span class="linechip" style="background:'+s.line.color+'">'+esc(s.line.name)+'</span>'
-        +'<div style="margin-top:8px;font-size:20px;line-height:1.5">🚃 '+typeCtl+' '+destCtl+'<br><span style="font-size:15px">に乗ってください</span></div>'
-        +(s._trunc?'<div style="margin-top:6px;padding:8px;border:2px solid #d33;border-radius:8px"><b>⚠ その電車は'+esc(alight)+'止まりです</b><br>'+esc(alight)+'で降りて、下のルートに乗り換えてください（自動で組み直しました）</div>':'')
+        +'<div class="board"><div class="board-head"><svg class="ic"><use href="#i-train"/></svg>'+typeCtl+' '+destCtl+'</div>'
+        +'<div class="muted" style="font-size:14px;margin-top:2px">に乗ってください</div>'
+        +(s._trunc?'<div style="margin-top:6px;padding:8px;border:2px solid #d43a2f;border-radius:8px"><b>⚠ その電車は'+esc(alight)+'止まりです</b><br>'+esc(alight)+'で降りて、下のルートに乗り換えてください（自動で組み直しました）</div>':'')
         +(s._extra?'<div class="muted" style="margin-top:4px">（乗り間違え対応で組み直した区間）</div>':'')
-        +'<div class="muted" style="margin-top:6px">この区間に停車する種別: '+(types.length?types.map(esc).join(' / '):'情報未取得')+'｜ホーム番号: 情報未取得</div>'
+        +'<div class="dep-line"><span>発車目安 <b>'+fmtTime(deps[si])+'</b> 発</span>'+(platNum?'<span class="plat">'+esc(platNum)+'番ホーム</span>':'<span class="muted">ホーム番号: 情報未取得</span>')+'</div>'
+        +'<ul class="okng">'
+        +'<li class="ok"><svg class="ic"><use href="#i-check"/></svg><span><b>乗っていい</b>: '+esc(dir.terminal)+'行き（この方面の電車）<br><span class="muted">行き先が途中の駅止まりの電車も、降りる駅を通るなら乗れます</span></span></li>'
+        +'<li class="ng"><svg class="ic"><use href="#i-ban"/></svg><span><b>乗ったらダメ</b>: '+esc(oppTerm)+'行き（逆方向）</span></li>'
+        +'</ul>'
+        +'<div class="muted" style="margin-top:6px">この区間に停車する種別: '+(types.length?types.map(esc).join(' / '):'情報未取得')+'</div>'
         +'<div class="muted">種別や行き先を間違えて乗ったときは、上の種別・行き先を変更すると時刻とルートが組み直されます。</div>'
-        +'</div>'
+        +'</div></div>'
         +'<div class="stop"><b>'+esc(alight)+'駅</b> <span class="muted">'+fmtTime(arrs[si])+'着</span>'+(si<CT.ds.length-1?'<div class="muted">ここで乗り換え（乗換目安 5分）</div>':'<div class="good">目的地に到着</div>')+'</div></div>'
         +(()=>{ const key=sig+'|'+si; const open=OPEN_VIA.has(key);
           const typeObj=s.line.types.find(t=>t.name===curType);
@@ -203,7 +213,7 @@ function renderRoutes(reorder){
     +'<div class="muted">'+esc(r.label)+'｜乗換 '+r.transfers+'回｜運賃: '+(r.fare!=null?'¥'+r.fare:'情報未取得')+'｜時刻表: 情報未取得（発着は目安）</div>'
     +'<div class="muted">各区間の発時刻は変更できます。変更すると後ろの時刻が自動で再計算されます。</div>'
     + segsHtml
-    +'<div class="row" style="margin-top:10px"><button class="sub" data-favroute="'+esc(LAST.from)+'|'+esc(LAST.to)+'">⭐ お気に入りに保存</button></div></div>';
+    +'<div class="row" style="margin-top:10px"><button class="sub" data-favroute="'+esc(LAST.from)+'|'+esc(LAST.to)+'"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-star"/></svg> お気に入りに保存</button></div></div>';
   }).join('');
   $('#sortSel').onchange=e=>{ SORTMODE=e.target.value; renderRoutes(); };
   box.querySelectorAll('.seg-dep').forEach(inp=>inp.onchange=()=>{
@@ -343,7 +353,7 @@ function showSetup(force){
   <label>通勤・通学の有無</label><select id="suCommute"><option value="commute" ${cur.commute==='commute'?'selected':''}>通勤</option><option value="school" ${cur.commute==='school'?'selected':''}>通学</option><option value="none" ${cur.commute==='none'?'selected':''}>なし</option></select>
   <label>よく使う乗換駅（候補から選んで追加、複数可）</label><input id="suTransferInput" autocomplete="off" placeholder="駅名を入力"><div id="suTransferInput-sug" class="suggest hidden"></div>
   <div id="suTransferChips" style="margin-top:8px"></div>
-  <div class="row" style="margin-top:10px"><button class="sub" id="suGps">📍 現在地を使う</button></div><div id="suNear" class="muted"></div>
+  <div class="row" style="margin-top:10px"><button class="sub" id="suGps"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-pin"/></svg> 現在地を使う</button></div><div id="suNear" class="muted"></div>
   <div style="height:12px"></div><button id="suDone" style="width:100%">設定して始める</button>
   ${force?'<div style="height:8px"></div><button class="sub" id="suCancel" style="width:100%">キャンセル</button>':''}</div>`;
   const cancel=$('#suCancel'); if(cancel) cancel.onclick=()=>modal.classList.add('hidden');

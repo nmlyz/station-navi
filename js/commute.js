@@ -31,9 +31,11 @@ const CommuteMode={
     const s=r.segments.find(x=>!x.lineId.startsWith('walk-'))||r.segments[0];
     const board=s.stations[0], alight=s.stations[s.stations.length-1];
     const dir=directionOf(s.line,board,alight); const types=usableTypes(s.line,board,alight);
-    box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start"><b>🚃 通勤モード（'+plan.when+'）</b><button id="caClose" class="sub" style="width:auto;padding:4px 12px">✕ 閉じる</button></div>'
+    const allN=s.line.stations.map(x=>x.name); const pm=s.line.platforms&&s.line.platforms[board];
+    const platNum=pm?pm[allN.indexOf(board)<allN.indexOf(alight)?'toLast':'toFirst']:null;
+    box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start"><b><svg class="ic" style="width:18px;height:18px;vertical-align:-3px"><use href="#i-train"/></svg> 通勤モード（'+plan.when+'）</b><button id="caClose" class="sub" style="width:auto;padding:4px 12px">✕ 閉じる</button></div>'
       +'<div style="font-size:15px;margin-top:4px">'+esc(plan.from)+'駅の近くです（約'+Math.round(d*1000)+'m）→ '+esc(plan.to)+'方面</div>'
-      +'<span class="linechip" style="background:'+s.line.color+';margin-top:8px">'+esc(s.line.name)+'</span>'
+      +'<span class="linechip" style="background:'+s.line.color+';margin-top:8px">'+esc(s.line.name)+'</span>'+(platNum?' <span class="plat" style="--lc:'+s.line.color+'">'+platNum+'番ホーム</span>':'')
       +'<div style="font-size:23px;font-weight:800;line-height:1.45;margin-top:6px">'+esc(types[0]||'')+' '+esc(dir.terminal)+'行き<br>に乗ってください</div>'
       +'<div style="font-size:14px;margin-top:4px">'+esc(plan.from)+' → '+esc(plan.to)+'（約'+r.minutes+'分・乗換'+r.transfers+'回）</div>'
       +'<div style="font-size:12px;opacity:.8;margin-top:2px">この表示は駅から離れるまで出続けます</div>';
