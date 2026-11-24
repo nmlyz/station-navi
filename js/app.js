@@ -50,7 +50,8 @@ function searchCard(prefill){
   <div class="row" style="margin-top:8px"><button class="sub swap" id="swapBtn" title="入れ替え">⇅ 入れ替え</button><button class="sub" id="gpsBtn">📍 現在地から検索</button></div>
   <div id="nearby"></div>
   ${stationInput('toInput','到着駅',searchState.to)}
-  <label>時刻の指定</label><div class="row"><select id="timeMode"><option value="dep" ${searchState.mode==='dep'?'selected':''}>出発時刻</option><option value="arr" ${searchState.mode==='arr'?'selected':''}>到着希望時刻</option></select><input type="time" id="timeInput" value="${esc(searchState.time)}"></div>
+  <label>時刻の指定（24時間表示）</label><div class="row"><select id="timeMode"><option value="dep" ${searchState.mode==='dep'?'selected':''}>出発時刻</option><option value="arr" ${searchState.mode==='arr'?'selected':''}>到着希望時刻</option></select><input type="time" id="timeInput" value="${esc(searchState.time)}"></div>
+  <div class="muted" id="time24" style="margin-top:2px">入力中の時刻（24時間表示）: ${esc(searchState.time||'')}</div>
   <div style="height:12px"></div><button id="doSearch" style="width:100%">検索する</button>
   <div id="results"></div></div>`;
 }
@@ -214,17 +215,28 @@ function viewHome(){
   const hist=JSON.parse(localStorage.getItem('sn-history')||'[]');
   $('#view').innerHTML=`
   <div class="card"><h2>${esc(setup.pref||'地域未設定')} の通勤・通学</h2>
-  ${commutes.length?commutes.map(c=>{ const r=GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)?findRoutes(GRAPH,c.from,c.to,8):null;
-    let sug='経路データ未取得'; if(r&&c.arriveBy){ const [h,m]=c.arriveBy.split(':').map(Number); const d=new Date(); d.setHours(h,m,0,0); sug='到着希望 '+c.arriveBy+' → 出発目安 '+fmtTime(new Date(d.getTime()-r.minutes*60000))+'（所要 '+r.minutes+'分・乗換'+r.transfers+'回）'; }
-    return `<div class="kv"><span><b>${esc(c.name)}</b><br><span class="muted">${esc(c.from)} → ${esc(c.to)}（${esc((c.days||[]).join('・')||'毎日')}）</span><br><span class="muted">${esc(sug)}</span></span><button class="sub" data-go="${esc(c.from)}|${esc(c.to)}">検索</button></div>`;}).join(''):'<p class="muted">通勤・通学経路は未登録です。設定タブから登録できます。</p>'}
+  ${commutes.length?commutes.map(c=>{ const fam=matchFamiliarLines(GRAPH,setup.line||'');
+    let rFam=null; if(fam.size&&GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)){ const rr=findRoutes(GRAPH,c.from,c.to,8,fam); if(rr&&rr.segments.every(s=>s.lineId.startsWith('walk-')||fam.has(s.lineId))) rFam=rr; }
+    const rFast=GRAPH&&GRAPH.stations.has(c.from)&&GRAPH.stations.has(c.to)?findRoutes(GRAPH,c.from,c.to,5):null;
+    const depFor=(r)=>{ const [h,m]=c.arriveBy.split(':').map(Number); const d=new Date(); d.setHours(h,m,0,0); return fmtTime(new Date(d.getTime()-r.minutes*60000)); };
+    let sug='経路データ未取得';
+    if(c.arriveBy&&(rFam||rFast)){ const parts=[];
+      if(rFam) parts.push('いつもの路線の出発目安 '+depFor(rFam)+'（所要 '+rFam.minutes+'分・乗換'+rFam.transfers+'回）');
+      if(rFast&&(!rFam||rFast.minutes!==rFam.minutes)) parts.push('最速なら出発目安 '+depFor(rFast)+'（所要 '+rFast.minutes+'分・乗換'+rFast.transfers+'回）');
+      sug='到着希望 '+c.arriveBy+' → '+parts.join(' ／ '); }
+    return `<div class="kv"><span><b>${esc(c.name)}</b><br><span class="muted">${esc(c.from)} → ${esc(c.to)}（${esc((c.days||[]).join('・')||'毎日')}）</span><br><span class="muted">${esc(sug)}</span></span><button class="sub" data-go="${esc(c.from)}|${esc(c.to)}"${c.arriveBy?` data-arrive="${esc(c.arriveBy)}"`:''}>検索</button></div>`;}).join(''):'<p class="muted">通勤・通学経路は未登録です。設定タブから登録できます。</p>'}
   </div>
   ${searchCard(true)}
   <div class="card"><h2>運行情報</h2><p class="muted">リアルタイム運行情報: 情報未取得。公共交通オープンデータセンター（ODPT）等は利用登録・APIキーが必要なため、本アプリにはキーを埋め込んでいません。遅延・運休などの最新情報は各事業者の公式発表でご確認ください。保存済みデータを最新情報のように表示することはありません。</p></div>
   ${hist.length?`<div class="card"><h2>最近の検索</h2>${hist.map(h=>`<div class="kv"><span>${esc(h.from)} → ${esc(h.to)}</span><button class="sub" data-go="${esc(h.from)}|${esc(h.to)}">検索</button></div>`).join('')}</div>`:''}`;
   bindSearchCard();
-  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ const [f,t]=b.dataset.go.split('|'); searchState.from=f; searchState.to=t; nav('search'); setTimeout(doSearch,0); });
+  const ti=$('#timeInput'); if(ti) ti.onchange=()=>{ const el=$('#time24'); if(el) el.textContent='入力中の時刻（24時間表示）: '+(ti.value||''); };
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ const [f,t]=b.dataset.go.split('|'); searchState.from=f; searchState.to=t;
+    if(b.dataset.arrive){ searchState.mode='arr'; searchState.time=b.dataset.arrive; } else { searchState.mode='dep'; searchState.time=fmtTime(new Date()); }
+    nav('search'); setTimeout(doSearch,0); });
 }
-function viewSearch(){ $('#view').innerHTML=searchCard(true); bindSearchCard(); }
+function viewSearch(){ $('#view').innerHTML=searchCard(true); bindSearchCard();
+  const ti=$('#timeInput'); if(ti) ti.onchange=()=>{ const el=$('#time24'); if(el) el.textContent='入力中の時刻（24時間表示）: '+(ti.value||''); }; }
 function viewFavs(){
   const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
   $('#view').innerHTML=`<div class="card"><h2>お気に入りルート</h2>${favs.length?favs.map((f,i)=>`<div class="kv"><span>${esc(f.from)} → ${esc(f.to)}</span><span><button class="sub" data-go="${esc(f.from)}|${esc(f.to)}">検索</button> <button class="sub" data-del="${i}">削除</button></span></div>`).join(''):'<p class="muted">お気に入りはまだありません。検索結果から保存できます。</p>'}</div>`;
@@ -305,7 +317,7 @@ function viewSettings(){
   $('#resetAll').onclick=async()=>{ Settings.clearAll(); const packs=await DB.allPacks(); for(const p of packs) await DB.delPack(p.id); await reloadGraph(); toast('初期化しました'); showSetup(false); render(); };
   bindSuggest('cFrom',null); bindSuggest('cTo',null);
   const cmT=$('#cmToggle'); if(cmT){ cmT.checked=CommuteMode.enabled();
-    cmT.onchange=()=>{ CommuteMode.setEnabled(cmT.checked); $('#cmStatus').textContent=cmT.checked?'ONにしました。通勤経路が未登録の場合は先に登録してください。':'OFFにしました。'; if(cmT.checked) CommuteMode.tick(); };
+    cmT.onchange=()=>{ CommuteMode.setEnabled(cmT.checked); $('#cmStatus').textContent=cmT.checked?(Commute.list().length?'現在ONです（アプリを開いている間だけ動作します）':'ONにしました。通勤経路が未登録の場合は先に登録してください。'):'OFFにしました。'; if(cmT.checked) CommuteMode.tick(); };
     $('#cmStatus').textContent=CommuteMode.enabled()?'現在ONです（アプリを開いている間だけ動作します）':'現在OFFです'; }
   $('#cAdd').onclick=()=>{ const name=$('#cName').value.trim(); if($('#cFrom').dataset.picked!==$('#cFrom').value.trim()||$('#cTo').dataset.picked!==$('#cTo').value.trim()){ toast('駅は候補をタップして選んでください'); return; } const fromR=resolveStation(GRAPH,$('#cFrom').value.trim()),toR=resolveStation(GRAPH,$('#cTo').value.trim());
     if(!name||!fromR||!toR){ toast('名前と、候補にある駅を選んでください'); return; } const from=fromR,to=toR;
