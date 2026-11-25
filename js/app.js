@@ -187,8 +187,9 @@ function renderRoutes(reorder){
       const curType=s._extra?(types[0]||''):s._type;
       if(curType&&!types.includes(curType)) types.unshift(curType);
       const curDest=s._extra?dir.terminal:s._dest;
+      const destOpts=(s._dests||[]).slice(); if(curDest&&!destOpts.includes(curDest)) destOpts.unshift(curDest);
       const typeCtl=s._extra?'<b>'+esc(curType)+'</b>':'<select class="seg-type" data-sig="'+sig+'" data-i="'+s._i+'">'+types.map(t=>'<option '+(t===curType?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select>';
-      const destCtl=s._extra?'<b>'+esc(curDest)+'行き</b>':'<select class="seg-dest" data-sig="'+sig+'" data-i="'+s._i+'">'+(s._dests||[]).map(d=>'<option '+(d===curDest?'selected':'')+'>'+esc(d)+'</option>').join('')+'</select> 行き';
+      const destCtl=s._extra?'<b>'+esc(curDest)+'行き</b>':'<select class="seg-dest" data-sig="'+sig+'" data-i="'+s._i+'">'+destOpts.map(d=>'<option '+(d===curDest?'selected':'')+'>'+esc(d)+'</option>').join('')+'</select> 行き';
       const allN=s.line.stations.map(x=>x.name); const bI=allN.indexOf(board), aI=allN.indexOf(alight);
       const oppTerm=bI<aI?allN[0]:allN[allN.length-1];
       const platMap=s.line.platforms&&s.line.platforms[board];
