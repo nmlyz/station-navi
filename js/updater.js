@@ -9,6 +9,11 @@ const Updater={
     const installed=await DB.allPacks(); let updated=0;
     for(const pack of installed){
       const info=(manifest.packs||[]).find(p=>p.id===pack.id); if(!info) continue;
+      for(const tf of (info.tt||[])){
+        if(await DB.getMeta('ttv-'+tf.line)===tf.version) continue;
+        try{ const tr=await fetch('data/'+tf.file+'?ts='+Date.now()); if(!tr.ok) continue;
+          const td=await tr.json(); if(td&&td.st){ await DB.putTT(td); await DB.setMeta('ttv-'+tf.line,tf.version); updated++; } }catch(e){}
+      }
       if(info.version===pack.version && manifest.version===await DB.getMeta('manifestVersion')) continue;
       try{
         const r=await fetch('data/'+info.file+'?ts='+Date.now()); if(!r.ok) throw new Error('bad');

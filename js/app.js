@@ -6,7 +6,9 @@ function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt
 function fmtDT(v){ const d=new Date(v); if(isNaN(d)) return String(v||''); return d.toLocaleString('ja-JP',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
 function fmtTime(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 function applyTheme(){const s=Settings.load();document.body.classList.toggle('dark',s.dark==='dark');document.body.classList.toggle('light',s.dark==='light');}
-async function reloadGraph(){ PACKS=await DB.allPacks(); GRAPH=buildGraph(PACKS); updateNet(); }
+async function reloadGraph(){ PACKS=await DB.allPacks(); GRAPH=buildGraph(PACKS);
+  TTDATA={}; TTCache.clear(); try{ (await DB.allTT()).forEach(t=>{ if(t&&t.id&&t.st) TTDATA[t.id]=t; }); }catch(e){}
+  updateNet(); }
 function updateNet(){ const on=navigator.onLine; const b=$('#netBadge'); b.textContent=on?'オンライン':'オフライン'; b.classList.toggle('off',!on);
   const bar=$('#offlineBar'); if(!on){ bar.classList.remove('hidden'); const last=PACKS.map(p=>p._updatedAt||p.updated).sort().pop()||'未取得';
     bar.textContent='オフラインモード｜保存データで検索できます｜データ最終更新: '+fmtDT(last)+'｜運行情報などのリアルタイム情報は利用できません'; }
@@ -24,6 +26,7 @@ async function downloadPack(id,btn){
     const data=JSON.parse(buf);
     if(!data.lines||data.lines.some(l=>!l.stations||l.stations.length<2)) throw new Error('データ検証に失敗しました');
     data._size=buf.length; data._updatedAt=new Date().toISOString(); await DB.putPack(data);
+    for(const tf of (info.tt||[])){ try{ const tr=await fetch('data/'+tf.file); if(tr.ok){ const td=await tr.json(); if(td&&td.st) { await DB.putTT(td); await DB.setMeta('ttv-'+tf.line,tf.version); } } }catch(e){} }
     await reloadGraph(); toast(info.name+' を保存しました'); render();
   }catch(e){ toast('ダウンロードに失敗しました。通信を確認して再試行してください（再開できます）'); if(btn){btn.disabled=false;btn.textContent='再試行';} }
 }
@@ -107,6 +110,10 @@ function computeTimes(r){
   ds.forEach((s,i)=>{ let dep;
     if(r.depOverrides&&r.depOverrides[i]){ const [h,m]=r.depOverrides[i].split(':').map(Number); dep=new Date(t); dep.setHours(h,m,0,0); if(dep<t) dep=t; }
     else dep=new Date(t);
+    if(!s.lineId.startsWith('walk-')&&!s._extra&&!(r.depOverrides&&r.depOverrides[i])){
+      try{ const snap=ttSnap(r,s,dep);
+        if(snap){ dep=snap.date; s._ttTrain=snap.train; s._ttNext=snap.next; s._type=snap.train.type; s._dest=snap.train.dest; s._factor=(TYPE_FACTOR[snap.train.type]!=null?TYPE_FACTOR[snap.train.type]:1); } }catch(e){}
+    }
     const arr=new Date(dep.getTime()+segMinutes(s)*60000);
     deps.push(dep); arrs.push(arr);
     const wait=s.lineId.startsWith('walk-')?0:5;
@@ -146,7 +153,7 @@ function doSearch(){
   cand.forEach(r=>{ if(seen.has(sigOf(r)))return; seen.add(sigOf(r)); routes.push(r); });
   if(!routes.length){ box.innerHTML='<p>保存済みデータの範囲では経路が見つかりませんでした。</p>'; return; }
   const [hh,mm]=searchState.time.split(':').map(Number);
-  routes.forEach(r=>{ r.fare=routeFare(r); r.depOverrides={}; r.typeSel={}; r.destSel={};
+  routes.forEach(r=>{ r.fare=routeFare(r); r.depOverrides={}; r.typeSel={}; r.destSel={}; r.trainSel={};
     const anchor=new Date(); anchor.setHours(hh,mm,0,0);
     r.baseDep=searchState.mode==='arr'?new Date(anchor.getTime()-routeTotalMinutes(r)*60000):anchor; });
   const first=routes[0]; if(first.label==='最速') first.label='おすすめ（最速）'; else if(routes.length>1&&routes[1].label==='最速') routes[1].label='最速';
@@ -176,8 +183,9 @@ function renderRoutes(reorder){
         +'<span class="linechip" style="background:#888">徒歩連絡</span><div style="margin-top:6px">徒歩で移動してください（'+segMinutes(s)+'分）</div></div>'
         +'<div class="stop"><b>'+esc(alight)+'駅</b> <span class="muted">'+fmtTime(arrs[si])+'着</span>'+(si<CT.ds.length-1?'<div class="muted">ここで乗り換え</div>':'<div class="good">目的地に到着</div>')+'</div></div>';
       const dir=directionOf(s.line,board,s.stations[s.stations.length-1]);
-      const types=s._extra?usableTypes(s.line,board,alight):(s._types||[]);
+      const types=s._extra?usableTypes(s.line,board,alight):(s._types||[]).slice();
       const curType=s._extra?(types[0]||''):s._type;
+      if(curType&&!types.includes(curType)) types.unshift(curType);
       const curDest=s._extra?dir.terminal:s._dest;
       const typeCtl=s._extra?'<b>'+esc(curType)+'</b>':'<select class="seg-type" data-sig="'+sig+'" data-i="'+s._i+'">'+types.map(t=>'<option '+(t===curType?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select>';
       const destCtl=s._extra?'<b>'+esc(curDest)+'行き</b>':'<select class="seg-dest" data-sig="'+sig+'" data-i="'+s._i+'">'+(s._dests||[]).map(d=>'<option '+(d===curDest?'selected':'')+'>'+esc(d)+'</option>').join('')+'</select> 行き';
@@ -192,17 +200,19 @@ function renderRoutes(reorder){
         +'<div class="muted" style="font-size:14px;margin-top:2px">に乗ってください</div>'
         +(s._trunc?'<div style="margin-top:6px;padding:8px;border:2px solid #d43a2f;border-radius:8px"><b>⚠ その電車は'+esc(alight)+'止まりです</b><br>'+esc(alight)+'で降りて、下のルートに乗り換えてください（自動で組み直しました）</div>':'')
         +(s._extra?'<div class="muted" style="margin-top:4px">（乗り間違え対応で組み直した区間）</div>':'')
-        +'<div class="dep-line"><span>発車目安 <b>'+fmtTime(deps[si])+'</b> 発</span>'+(platNum?'<span class="plat">'+esc(platNum)+'番ホーム</span>':'<span class="muted">ホーム番号: 情報未取得</span>')+'</div>'
-        +'<div class="muted" style="font-size:12px;margin-top:2px">種別・発車時刻は目安です（時刻表データ取得中）</div>'
+        +'<div class="dep-line"><span>'+(s._ttTrain?'発車 <b>':'発車目安 <b>')+fmtTime(deps[si])+'</b> 発</span>'+(platNum?'<span class="plat">'+esc(platNum)+'番ホーム</span>':'<span class="muted">ホーム番号: 情報未取得</span>')+'</div>'
+        +(s._ttTrain?'<div class="muted" style="font-size:12px;margin-top:2px">発車は時刻表の実時刻です（到着は目安）</div>':'<div class="muted" style="font-size:12px;margin-top:2px">種別・発車時刻は目安です（時刻表データ取得中）</div>')
+        +(s._ttNext&&s._ttNext.length?'<div style="margin-top:8px"><b>次の発車（時刻表・タップで選択）</b></div><div class="dchips">'+s._ttNext.map(tr=>'<button class="dchip ok'+(s._ttTrain&&tr.m===s._ttTrain.m?' sel':'')+'" data-trainpick="'+tr.m+'" data-sig="'+sig+'" data-i="'+s._i+'">'+fmtMin(tr.m)+' '+esc(tr.type)+' '+esc(tr.dest)+'行き</button>').join('')+'</div>':'')
         +(()=>{ const thDests=(s.line.through&&s.line.through[dir.terminal])||[];
-          const destCands=[...new Set([dir.terminal,...thDests,alight])];
+          const ttSet=s._extra?null:(()=>{ try{ return ttDestSet(s.line,board,alight,deps[si]); }catch(e){ return null; } })();
+          const destCands=ttSet&&ttSet.length?ttSet:[...new Set([dir.terminal,...thDests,alight])];
           const okChips=destCands.map(d=> s._extra? '<span class="dchip ok">'+esc(d)+'行き</span>' : '<button class="dchip ok'+(d===curDest?' sel':'')+'" data-destpick="'+esc(d)+'" data-sig="'+sig+'" data-i="'+s._i+'">'+esc(d)+'行き</button>').join('');
           const midNames=[]; const stp=bI<aI?1:-1; for(let k=bI+stp;k!==aI;k+=stp) midNames.push(allN[k]);
           const midTxt=midNames.length? midNames.slice(0,4).join('・')+(midNames.length>4?' など':'') : '';
           return '<div style="margin-top:10px"><b style="color:var(--good)">乗っていい行き先（タップで再計算）</b></div>'
           +'<div class="dchips">'+okChips+'</div>'
           +'<div class="muted">行き先が「'+esc(alight)+'」か、それより先の駅なら乗れます。タップすると、その行き先に乗れる最速の種別で時刻を再計算します</div>'
-          +(thDests.length? '<div class="muted">「'+esc(dir.terminal)+'」から先の直通先（'+thDests.map(esc).join('・')+'）行きも、'+esc(alight)+'を通るので乗れます</div>':'')
+          +(ttSet? '<div class="muted">行き先は時刻表の実データから表示しています</div>' : (thDests.length? '<div class="muted">「'+esc(dir.terminal)+'」から先の直通先（'+thDests.map(esc).join('・')+'）行きも、'+esc(alight)+'を通るので乗れます</div>':''))
           +'<div style="margin-top:8px"><b style="color:var(--ng)">乗ったらダメ</b></div>'
           +'<div class="dchips"><span class="dchip ng">'+esc(oppTerm)+'行き（逆方向）</span></div>'
           +(midTxt? '<div class="muted">行き先が「'+esc(alight)+'」より手前（'+esc(midTxt)+'）止まりの電車もダメです</div>':''); })()
@@ -220,7 +230,7 @@ function renderRoutes(reorder){
             +'<div class="via-list" '+(open?'':'hidden')+' style="margin-top:6px">'+rows+'</div>'; })();
     }).join('');
     return '<div class="card" style="margin-top:12px"><div class="result-head"><span class="big">'+r._total+'分</span><span>'+fmtTime(computeTimes(r).deps[0])+' → '+fmtTime(computeTimes(r).arrs[computeTimes(r).arrs.length-1])+'</span></div>'
-    +'<div class="muted">'+esc(r.label)+'｜乗換 '+r.transfers+'回｜運賃: '+(r.fare!=null?'¥'+r.fare:'情報未取得')+'｜時刻表: 情報未取得（発着は目安）</div>'
+    +'<div class="muted">'+esc(r.label)+'｜乗換 '+r.transfers+'回｜運賃: '+(r.fare!=null?'¥'+r.fare:'情報未取得')+'｜時刻表: '+(CT.ds.some(x=>x._ttTrain)?'一部路線あり（発車は実時刻・到着は目安）':'情報未取得（発着は目安）')+'</div>'
     +'<div class="muted">各区間の発時刻は変更できます。変更すると後ろの時刻が自動で再計算されます。</div>'
     + segsHtml
     +(FAVONLY?'':'<div class="row" style="margin-top:10px"><button class="sub" data-favroute="'+esc(LAST.from)+'|'+esc(LAST.to)+'"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-star"/></svg> お気に入りに保存</button></div>')+'</div>';
@@ -238,6 +248,8 @@ function renderRoutes(reorder){
     const fastest=types.slice().sort((a,b2)=>(TYPE_FACTOR[a]!=null?TYPE_FACTOR[a]:1)-(TYPE_FACTOR[b2]!=null?TYPE_FACTOR[b2]:1))[0];
     r.destSel=r.destSel||{}; r.typeSel=r.typeSel||{}; r.destSel[i]=b.dataset.destpick; if(fastest) r.typeSel[i]=fastest; r._ds=null; renderRoutes(false);
     toast('「'+b.dataset.destpick+'行き」最速の種別（'+(fastest||'')+'）で再計算しました'); });
+  box.querySelectorAll('[data-trainpick]').forEach(b=>b.onclick=()=>{ const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===b.dataset.sig); if(!r) return;
+    r.trainSel=r.trainSel||{}; r.trainSel[+b.dataset.i]=+b.dataset.trainpick; r._ds=null; renderRoutes(false); toast('発車時刻を時刻表の電車に合わせました'); });
   box.querySelectorAll('[data-favroute]').forEach(b=>b.onclick=()=>{ askFavName('お気に入りに名前を付ける', LAST.from+' → '+LAST.to, v=>{
     const favs=JSON.parse(localStorage.getItem('sn-favs')||'[]');
     favs.unshift({name:v||(LAST.from+' → '+LAST.to),from:LAST.from,to:LAST.to}); localStorage.setItem('sn-favs',JSON.stringify(favs.slice(0,20))); toast('お気に入りに保存しました'); }); });
