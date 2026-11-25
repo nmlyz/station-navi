@@ -72,7 +72,7 @@ function bindSearchCard(){
   const ds=$('#doSearch'); if(ds) ds.onclick=()=>{ FAVONLY=false; doSearch(); };
 }
 let LAST=null, SORTMODE='rec', FAVONLY=false;
-const TYPE_FACTOR={'特急':0.8,'京王ライナー':0.8,'通勤特快':0.82,'快速急行':0.82,'通勤特急':0.82,'中央特快':0.85,'青梅特快':0.85,'新快速':0.85,'急行':0.88,'快速':0.9,'通勤快速':0.9,'通勤急行':0.9,'区間急行':0.93,'準急':0.95,'通勤準急':0.95,'区間準急':0.97,'普通':1.1,'各駅停車':1.15};
+const TYPE_FACTOR={'特急':0.8,'京王ライナー':0.8,'通勤特快':0.82,'快速急行':0.82,'通勤特急':0.82,'中央特快':0.85,'青梅特快':0.85,'新快速':0.85,'急行':0.88,'快速':0.9,'通勤快速':0.9,'通勤急行':0.9,'区間急行':0.93,'区間快速':0.93,'大和路快速':0.9,'関空快速':0.9,'紀州路快速':0.9,'準急':0.95,'通勤準急':0.95,'区間準急':0.97,'普通':1.1,'各駅停車':1.15};
 const OPEN_VIA=new Set();
 function segMinutes(s){ let m=0; for(let i=1;i<s.stations.length;i++){ const st=s.line.stations.find(x=>x.name===s.stations[i]); m+=(st?st.min:2)||2; } return Math.max(1,Math.round(m*(s._factor||1))); }
 function displaySegments(r){
