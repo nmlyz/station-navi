@@ -18,10 +18,11 @@ const GoogleDir={
     const svc=new google.maps.DirectionsService();
     const req={origin:from+'駅',destination:to+'駅',travelMode:google.maps.TravelMode.TRANSIT,transitOptions:{modes:[google.maps.TransitMode.RAIL]}};
     req.transitOptions[mode==='arr'?'arrivalTime':'departureTime']=d;
-    return new Promise((res,rej)=>{ svc.route(req,(result,status)=>{
-      if(status==='OK'&&result&&result.routes&&result.routes.length) return res(result);
-      const msg={REQUEST_DENIED:'キーが無効か、Maps JavaScript API / Directions API が有効になっていません',OVER_QUERY_LIMIT:'利用上限に達しました',ZERO_RESULTS:'Googleマップでルートが見つかりませんでした',INVALID_REQUEST:'検索条件が正しくありません',NOT_FOUND:'駅が見つかりませんでした',UNKNOWN_ERROR:'Googleマップ側でエラーが発生しました'}[status]||('Googleマップ検索エラー: '+status);
-      rej(new Error(msg)); }); });
+    return new Promise((res,rej)=>{ const timer=setTimeout(()=>rej(new Error('Googleマップから応答がありませんでした（キーが無効な可能性があります）')),15000);
+      svc.route(req,(result,status)=>{ clearTimeout(timer);
+        if(status==='OK'&&result&&result.routes&&result.routes.length) return res(result);
+        const msg={REQUEST_DENIED:'キーが無効か、Maps JavaScript API / Directions API が有効になっていません',OVER_QUERY_LIMIT:'利用上限に達しました',ZERO_RESULTS:'Googleマップでルートが見つかりませんでした',INVALID_REQUEST:'検索条件が正しくありません',NOT_FOUND:'駅が見つかりませんでした',UNKNOWN_ERROR:'Googleマップ側でエラーが発生しました'}[status]||('Googleマップ検索エラー: '+status);
+        rej(new Error(msg)); }); });
   },
   html(result){
     if(!result||!result.routes||!result.routes.length) return '<p class="muted">Googleマップでルートが見つかりませんでした。</p>';
