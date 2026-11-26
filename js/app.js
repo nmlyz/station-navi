@@ -241,7 +241,11 @@ function renderRoutes(reorder){
     +'<div class="muted">各区間の発時刻は変更できます。変更すると後ろの時刻が自動で再計算されます。</div>'
     + segsHtml
     +(FAVONLY?'':'<div class="row" style="margin-top:10px"><button class="sub" data-favroute="'+esc(LAST.from)+'|'+esc(LAST.to)+'"><svg class="ic" style="width:17px;height:17px;vertical-align:-3px"><use href="#i-star"/></svg> お気に入りに保存</button></div>')+'</div>';
-  }).join('');
+  }).join('')
+  +'<div class="card" style="margin-top:12px"><h3>Googleマップの実時刻（1回検索）</h3>'+(GoogleDir.key()
+    ?'<button class="sub" id="gSearch" style="width:100%">Googleマップで検索する</button><div id="gResult" style="margin-top:8px"></div>'
+    :'<p class="muted">設定タブでGoogle APIキーを入れると、ここでGoogleマップの実時刻ルートも確認できます。</p>')+'</div>';
+  const gb=$('#gSearch'); if(gb) gb.onclick=async()=>{ const box2=$('#gResult'); box2.innerHTML='<p class="muted">検索中…</p>'; try{ const j=await GoogleDir.search(searchState.from,searchState.to,searchState.mode,searchState.time); box2.innerHTML=GoogleDir.html(j); }catch(e){ box2.innerHTML='<p class="muted">通信に失敗しました（ネット接続とキーを確認してください）</p>'; } };
   const ss=$('#sortSel'); if(ss) ss.onchange=e=>{ SORTMODE=e.target.value; renderRoutes(); };
   box.querySelectorAll('.seg-dep').forEach(inp=>inp.onchange=()=>{
     const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===inp.dataset.sig); if(!r) return;
@@ -358,7 +362,11 @@ async function importGTFS(ev){
 }
 function viewSettings(){
   const s=Settings.load(); const setup=Settings.setup()||{}; const commutes=Commute.list();
-  $('#view').innerHTML=`<div class="card"><h2>設定</h2>
+  $('#view').innerHTML=`<div class="card"><h2>Googleマップ連携（任意）</h2>
+  <p class="muted">Google APIキーを入れると、駅検索のたびにGoogleマップの実時刻ルートも1回だけ引いて表示できます（結果は保存されません）。キーには Directions API の有効化が必要です。キーはこの端末内にのみ保存されます。</p>
+  <label>Google APIキー</label><input id="gKey" type="password" autocomplete="off" placeholder="AIza..." value="${esc(s.gkey||'')}">
+  <div style="height:8px"></div><button class="sub" id="gKeySave" style="width:100%">キーを保存</button></div>
+  <div class="card"><h2>設定</h2>
   <div class="kv"><span>利用地域</span><span>${esc(setup.pref||'未設定')}</span></div>
   <div class="kv"><span>よく使う出発駅</span><span>${esc(setup.from||'未設定')}</span></div>
   <div class="kv"><span>よく使う目的駅</span><span>${esc(setup.to||'未設定')}</span></div>
@@ -384,6 +392,7 @@ function viewSettings(){
   <div class="switch"><span>通勤モードをONにする</span><input type="checkbox" id="cmToggle"></div>
   <p class="muted" id="cmStatus">現在OFFです</p>${notifyRowHTML()}
   <p class="muted">ONにすると、アプリを開いている間に現在地を継続的に確認し、登録した通勤経路の駅（午前は自宅側、午後は職場・学校側）から約450m以内に入ると「何行きに乗ればいいか」をポップアップで表示します（通知を許可していれば通知でも届きます）。駅から離れるまで表示し続けます。位置情報は端末内でのみ使い、外部送信しません。</p></div>`;
+  $('#gKeySave').onclick=()=>{ Settings.save({...Settings.load(),gkey:$('#gKey').value.trim()}); toast('Google APIキーを保存しました'); };
   $('#editSetup').onclick=()=>showSetup(true);
   const save=()=>{ const ns={...Settings.load(),autoUpdate:$('#swAuto').checked,wifiOnly:$('#swWifi').checked,mobileUpdate:$('#swMobile').checked,dark:$('#selDark').value}; Settings.save(ns); applyTheme(); toast('設定を保存しました'); };
   ['swAuto','swWifi','swMobile','selDark'].forEach(id=>$('#'+id).onchange=save);
