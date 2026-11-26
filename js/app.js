@@ -114,7 +114,11 @@ function computeTimes(r){
       try{ const snap=ttSnap(r,s,dep);
         if(snap){ dep=snap.date; s._ttTrain=snap.train; s._ttNext=snap.next; s._type=snap.train.type; s._dest=snap.train.dest; s._factor=(TYPE_FACTOR[snap.train.type]!=null?TYPE_FACTOR[snap.train.type]:1); } }catch(e){}
     }
-    const arr=new Date(dep.getTime()+segMinutes(s)*60000);
+    let arr=null;
+    if(s._ttTrain){ try{ const svc=ttService(dep).svc; const chain=ttChain(s.line,s.stations[0],s.stations,s._ttTrain,svc); s._ttChain=chain;
+      const am=chain[s.stations[s.stations.length-1]];
+      if(am!=null){ const ad=new Date(svc); ad.setHours(0,am,0,0); if(ad>dep){ arr=ad; s._ttArrReal=true; } } }catch(e){} }
+    if(!arr) arr=new Date(dep.getTime()+segMinutes(s)*60000);
     deps.push(dep); arrs.push(arr);
     const wait=s.lineId.startsWith('walk-')?0:5;
     t=new Date(arr.getTime()+wait*60000);
@@ -153,9 +157,10 @@ function doSearch(){
   cand.forEach(r=>{ if(seen.has(sigOf(r)))return; seen.add(sigOf(r)); routes.push(r); });
   if(!routes.length){ box.innerHTML='<p>保存済みデータの範囲では経路が見つかりませんでした。</p>'; return; }
   const [hh,mm]=searchState.time.split(':').map(Number);
+  const anchor=new Date(); anchor.setHours(hh,mm,0,0);
   routes.forEach(r=>{ r.fare=routeFare(r); r.depOverrides={}; r.typeSel={}; r.destSel={}; r.trainSel={};
-    const anchor=new Date(); anchor.setHours(hh,mm,0,0);
     r.baseDep=searchState.mode==='arr'?new Date(anchor.getTime()-routeTotalMinutes(r)*60000):anchor; });
+  if(searchState.mode==='arr'){ routes.forEach(r=>{ try{ const ct=computeTimes(r); const last=ct.arrs[ct.arrs.length-1]; const diff=anchor.getTime()-last.getTime(); if(diff) r.baseDep=new Date(r.baseDep.getTime()+diff); }catch(e){} }); }
   const first=routes[0]; if(first.label==='最速') first.label='おすすめ（最速）'; else if(routes.length>1&&routes[1].label==='最速') routes[1].label='最速';
   if(first.label==='いつもの路線') first.label='おすすめ（いつもの路線）';
   LAST={routes:routes.slice(0,5),from:fromR,to:toR};
@@ -202,7 +207,7 @@ function renderRoutes(reorder){
         +(s._trunc?'<div style="margin-top:6px;padding:8px;border:2px solid #d43a2f;border-radius:8px"><b>⚠ その電車は'+esc(alight)+'止まりです</b><br>'+esc(alight)+'で降りて、下のルートに乗り換えてください（自動で組み直しました）</div>':'')
         +(s._extra?'<div class="muted" style="margin-top:4px">（乗り間違え対応で組み直した区間）</div>':'')
         +'<div class="dep-line"><span>'+(s._ttTrain?'発車 <b>':'発車目安 <b>')+fmtTime(deps[si])+'</b> 発</span>'+(platNum?'<span class="plat">'+esc(platNum)+'番ホーム</span>':'<span class="muted">ホーム番号: 情報未取得</span>')+'</div>'
-        +(s._ttTrain?'<div class="muted" style="font-size:12px;margin-top:2px">発車は時刻表の実時刻です（到着は目安）</div>':'<div class="muted" style="font-size:12px;margin-top:2px">種別・発車時刻は目安です（時刻表データ取得中）</div>')
+        +(s._ttTrain?(s._ttArrReal?'<div class="muted" style="font-size:12px;margin-top:2px">発車・到着は時刻表の実時刻です</div>':'<div class="muted" style="font-size:12px;margin-top:2px">発車は時刻表の実時刻です（到着は目安）</div>'):'<div class="muted" style="font-size:12px;margin-top:2px">種別・発車時刻は目安です（時刻表データ取得中）</div>')
         +(s._ttNext&&s._ttNext.length?'<div style="margin-top:8px"><b>次の発車（時刻表・タップで選択）</b></div><div class="dchips">'+s._ttNext.map(tr=>'<button class="dchip ok'+(s._ttTrain&&tr.m===s._ttTrain.m?' sel':'')+'" data-trainpick="'+tr.m+'" data-sig="'+sig+'" data-i="'+s._i+'">'+fmtMin(tr.m)+' '+esc(tr.type)+' '+esc(tr.dest)+'行き</button>').join('')+'</div>':'')
         +(()=>{ const thDests=(s.line.through&&s.line.through[dir.terminal])||[];
           const ttSet=s._extra?null:(()=>{ try{ return ttDestSet(s.line,board,alight,deps[si]); }catch(e){ return null; } })();
@@ -226,7 +231,8 @@ function renderRoutes(reorder){
           let cum=0; const rows=s.stations.map((nm,k)=>{ if(k>0){ const st=s.line.stations.find(x=>x.name===nm); cum+=((st?st.min:2)||2)*(s._factor||1); }
             const isStop=!typeObj||typeObj.stops==='all'||typeObj.stops.includes(nm);
             const tag=k===0?'乗車':(k===s.stations.length-1?'降車':(isStop?'停車':'通過'));
-            return '<div class="kv"><span>'+(k===0||k===s.stations.length-1?'<b>':'')+esc(nm)+'駅'+(k===0||k===s.stations.length-1?'</b>':'')+'</span><span class="muted">'+tag+(k>0?' ・ +'+Math.round(cum)+'分':'')+'</span></div>'; }).join('');
+            const dispMin=(s._ttChain&&s._ttChain[nm]!=null&&s._ttChain[s.stations[0]]!=null)?(s._ttChain[nm]-s._ttChain[s.stations[0]]):Math.round(cum);
+            return '<div class="kv"><span>'+(k===0||k===s.stations.length-1?'<b>':'')+esc(nm)+'駅'+(k===0||k===s.stations.length-1?'</b>':'')+'</span><span class="muted">'+tag+(k>0?' ・ +'+dispMin+'分':'')+'</span></div>'; }).join('');
           return '<button class="sub via-btn" data-via="'+key+'" style="width:100%;margin-top:6px">駅間（経由駅一覧）'+(open?' ▲':' ▼')+'</button>'
             +'<div class="via-list" '+(open?'':'hidden')+' style="margin-top:6px">'+rows+'</div>'; })();
     }).join('');

@@ -77,4 +77,18 @@ function ttSnap(r,s,depDate){
   const next=pool.slice(0,5);
   return {train,date,next};
 }
+function ttChain(line,board,travelStations,train,svcDate){
+  // 選んだ電車を後続駅の発車リストで追跡し、駅ごとの実発車分を返す（到着時刻の実データ化用）
+  const dirKey=ttDirKey(line,board,travelStations[travelStations.length-1]);
+  const out={}; out[board]=train.m; let prev=train.m;
+  for(let k=1;k<travelStations.length;k++){
+    const st=travelStations[k];
+    const list=ttTrains(line.id,st,dirKey,svcDate); if(!list) break;
+    const cand=list.filter(t=>t.dest===train.dest&&t.m>=prev+1&&t.m<=prev+12);
+    if(!cand.length) break;
+    const pick=cand.find(t=>t.type===train.type)||cand[0];
+    out[st]=pick.m; prev=pick.m;
+  }
+  return out;
+}
 function fmtMin(m){ const h=Math.floor(m/60)%24, mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
