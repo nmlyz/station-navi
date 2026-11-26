@@ -245,7 +245,7 @@ function renderRoutes(reorder){
   +'<div class="card" style="margin-top:12px"><h3>Googleマップの実時刻（1回検索）</h3>'+(GoogleDir.key()
     ?'<button class="sub" id="gSearch" style="width:100%">Googleマップで検索する</button><div id="gResult" style="margin-top:8px"></div>'
     :'<p class="muted">設定タブでGoogle APIキーを入れると、ここでGoogleマップの実時刻ルートも確認できます。</p>')+'</div>';
-  const gb=$('#gSearch'); if(gb) gb.onclick=async()=>{ const box2=$('#gResult'); box2.innerHTML='<p class="muted">検索中…</p>'; try{ const j=await GoogleDir.search(searchState.from,searchState.to,searchState.mode,searchState.time); box2.innerHTML=GoogleDir.html(j); }catch(e){ box2.innerHTML='<p class="muted">通信に失敗しました（ネット接続とキーを確認してください）</p>'; } };
+  const gb=$('#gSearch'); if(gb) gb.onclick=async()=>{ const box2=$('#gResult'); box2.innerHTML='<p class="muted">検索中…</p>'; try{ const j=await GoogleDir.search(searchState.from,searchState.to,searchState.mode,searchState.time); box2.innerHTML=GoogleDir.html(j); }catch(e){ box2.innerHTML='<p class="muted">'+esc(e.message||'通信に失敗しました（ネット接続とキーを確認してください）')+'</p>'; } };
   const ss=$('#sortSel'); if(ss) ss.onchange=e=>{ SORTMODE=e.target.value; renderRoutes(); };
   box.querySelectorAll('.seg-dep').forEach(inp=>inp.onchange=()=>{
     const r=LAST.routes.find(x=>x.segments.map(y=>y.lineId).join(',')===inp.dataset.sig); if(!r) return;
@@ -363,7 +363,7 @@ async function importGTFS(ev){
 function viewSettings(){
   const s=Settings.load(); const setup=Settings.setup()||{}; const commutes=Commute.list();
   $('#view').innerHTML=`<div class="card"><h2>Googleマップ連携（任意）</h2>
-  <p class="muted">Google APIキーを入れると、駅検索のたびにGoogleマップの実時刻ルートも1回だけ引いて表示できます（結果は保存されません）。キーには Directions API の有効化が必要です。キーはこの端末内にのみ保存されます。</p>
+  <p class="muted">Google APIキーを入れると、駅検索のたびにGoogleマップの実時刻ルートも1回だけ引いて表示できます（結果は保存されません）。キーには Maps JavaScript API と Directions API の有効化が必要です。キーはこの端末内にのみ保存されます。</p>
   <label>Google APIキー</label><input id="gKey" type="password" autocomplete="off" placeholder="AIza..." value="${esc(s.gkey||'')}">
   <div style="height:8px"></div><button class="sub" id="gKeySave" style="width:100%">キーを保存</button></div>
   <div class="card"><h2>設定</h2>
