@@ -3,9 +3,12 @@ const GoogleDir={
   key(){ return (Settings.load().gkey||'').trim(); },
   _load(key){ return new Promise((res,rej)=>{
     if(window.google&&google.maps&&google.maps.DirectionsService) return res();
+    const timer=setTimeout(()=>rej(new Error('Googleマップの読み込みがタイムアウトしました（キーを確認してください）')),15000);
+    window.gm_authFailure=()=>{ clearTimeout(timer); rej(new Error('キーが無効か、Maps JavaScript API が有効になっていません')); };
     const sc=document.createElement('script');
     sc.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&language=ja';
-    sc.onload=()=>res(); sc.onerror=()=>rej(new Error('Googleマップの読み込みに失敗しました'));
+    sc.onload=()=>{ clearTimeout(timer); if(window.google&&google.maps&&google.maps.DirectionsService) res(); else rej(new Error('Googleマップを読み込めませんでした（キーを確認してください）')); };
+    sc.onerror=()=>{ clearTimeout(timer); rej(new Error('Googleマップの読み込みに失敗しました')); };
     document.head.appendChild(sc); }); },
   async search(from,to,mode,timeStr){
     const key=this.key(); if(!key) throw new Error('キーが未設定です');
@@ -15,12 +18,13 @@ const GoogleDir={
     const svc=new google.maps.DirectionsService();
     const req={origin:from+'駅',destination:to+'駅',travelMode:google.maps.TravelMode.TRANSIT,transitOptions:{modes:[google.maps.TransitMode.RAIL]}};
     req.transitOptions[mode==='arr'?'arrivalTime':'departureTime']=d;
-    try{ return await svc.route(req); }
-    catch(e){ const st=String(e&&e.message?e.message:e);
-      const msg={REQUEST_DENIED:'キーが無効か、Maps JavaScript API / Directions API が有効になっていません',OVER_QUERY_LIMIT:'利用上限に達しました',ZERO_RESULTS:'Googleマップでルートが見つかりませんでした',INVALID_REQUEST:'検索条件が正しくありません',NOT_FOUND:'駅が見つかりませんでした'}[st]||('Googleマップ検索エラー: '+st);
-      throw new Error(msg); }
+    return new Promise((res,rej)=>{ svc.route(req,(result,status)=>{
+      if(status==='OK'&&result&&result.routes&&result.routes.length) return res(result);
+      const msg={REQUEST_DENIED:'キーが無効か、Maps JavaScript API / Directions API が有効になっていません',OVER_QUERY_LIMIT:'利用上限に達しました',ZERO_RESULTS:'Googleマップでルートが見つかりませんでした',INVALID_REQUEST:'検索条件が正しくありません',NOT_FOUND:'駅が見つかりませんでした',UNKNOWN_ERROR:'Googleマップ側でエラーが発生しました'}[status]||('Googleマップ検索エラー: '+status);
+      rej(new Error(msg)); }); });
   },
   html(result){
+    if(!result||!result.routes||!result.routes.length) return '<p class="muted">Googleマップでルートが見つかりませんでした。</p>';
     const leg=result.routes[0].legs[0];
     const transitSteps=leg.steps.filter(s=>s.travel_mode==='TRANSIT');
     let h='<div class="kv"><span><b>'+esc(leg.departure_time.text)+'発 → '+esc(leg.arrival_time.text)+'着</b></span><span class="muted">'+esc(leg.duration.text)+' / 乗換'+Math.max(0,transitSteps.length-1)+'回</span></div>';
